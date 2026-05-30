@@ -1,0 +1,287 @@
+# termeric — Golden prompts for your terminal (fish)
+# Source: source ~/.termeric_fish
+#
+# Configuration (set before sourcing):
+#   set -g GIT_COLORS on       Powerline segments (default: on)
+#   set -g PROMPT_EXIT_CODE on Exit indicator (default: on)
+#   set -g PROMPT_CMD_TIME on  Command duration >=2s (default: off)
+
+# ── Defaults ────────────────────────────────────────────────────
+set -q GIT_COLORS; or set -g GIT_COLORS on
+set -q PROMPT_EXIT_CODE; or set -g PROMPT_EXIT_CODE on
+set -q PROMPT_CMD_TIME; or set -g PROMPT_CMD_TIME off
+
+# ── Term detection (once) ──────────────────────────────────────
+switch $TERM
+    case 'xterm-color' '*-256color' '*-truecolor'
+        set -g _tmerm_color yes
+    case '*'
+        set -g _tmerm_color no
+end
+
+# ── Window title flag ──────────────────────────────────────────
+switch $TERM
+    case 'xterm*' 'rxvt*'
+        set -g _tmerm_has_title yes
+    case '*'
+        set -g _tmerm_has_title no
+end
+
+# ── Color definitions (once) ──────────────────────────────────
+if test "$_tmerm_color" = yes
+    # Powerline backgrounds
+    set -g BG_OK      (set_color -b 00D200)
+    set -g BG_FAIL    (set_color -b DC3232)
+    set -g BG_USER    (set_color -b 3264DC)
+    set -g BG_PATH    (set_color -b 00BEBE)
+    set -g BG_GIT     (set_color -b DCB400)
+    set -g BG_TIME    (set_color -b C832C8)
+    set -g BG_PRM     (set_color -b 00D200)
+
+    # Arrow foregrounds (match previous segment bg)
+    set -g ARROW_OK     (set_color 00D200)
+    set -g ARROW_FAIL   (set_color DC3232)
+    set -g ARROW_USER   (set_color 3264DC)
+    set -g ARROW_PATH   (set_color 00BEBE)
+    set -g ARROW_GIT    (set_color DCB400)
+    set -g ARROW_TIME   (set_color C832C8)
+    set -g ARROW_BLACK  (set_color 000000)
+
+    # Text on dark backgrounds
+    set -g TXT_BG     (set_color FFFFFF)
+    set -g TXT_BG_LIT (set_color 000000)
+
+    # Text-mode foregrounds
+    set -g TXT_OK     (set_color green)
+    set -g TXT_FAIL   (set_color red --bold)
+    set -g TXT_USER   (set_color green)
+    set -g TXT_PATH   (set_color blue)
+    set -g TXT_GIT    (set_color yellow)
+    set -g TXT_TIME   (set_color cyan)
+
+    # Reset
+    set -g R (set_color normal)
+
+    # Powerline separator
+    set -g PSEP ''
+end
+
+# ── Command duration tracking ──────────────────────────────────
+set -g __tmerm_timer 0
+
+function __tmerm_cmd_start --on-event fish_preexec
+    set -g __tmerm_timer (date +%s)
+end
+
+# ── Git info via cache ─────────────────────────────────────────
+function __tmerm_git_info
+    # Fast exit: not in a git repo
+    git rev-parse --is-inside-work-tree >/dev/null 2>&1
+    or return
+
+    set -l git_dir (git rev-parse --git-dir 2>/dev/null)
+    or return
+
+    set -l cache_file "$git_dir/.termeric_cache"
+    set -l head_file "$git_dir/HEAD"
+    set -l index_file "$git_dir/index"
+
+    # Check cache validity
+    if test -f "$cache_file"
+        set -l cached_head (cat "$cache_file" | string split ' ')[1]
+        set -l cached_index (cat "$cache_file" | string split ' ')[2]
+        set -l cur_head (stat -f '%m' "$head_file" 2>/dev/null; or stat -c '%Y' "$head_file" 2>/dev/null)
+        set -l cur_index (stat -f '%m' "$index_file" 2>/dev/null; or stat -c '%Y' "$index_file" 2>/dev/null)
+        if test "$cur_head" = "$cached_head"; and test "$cur_index" = "$cached_index"
+            set -l cache_result "$git_dir/.termeric_result"
+            if test -f "$cache_result"
+                cat "$cache_result"
+                return
+            end
+        end
+    end
+
+    # Cache miss — compute git status
+    set -l branch ""
+    set -l staged 0
+    set -l unstaged 0
+    set -l untracked 0
+    set -l ahead 0
+    set -l behind 0
+
+    while read -l line
+        if string match -q '## '* "$line"
+            set -l branch_line (string replace '## ' '' "$line")
+            set -l branch_parts (string split '...' "$branch_line")
+            set -l branch "$branch_parts[1]"
+            if string match -qr 'ahead ([0-9]+)' "$branch_line"
+                set -l ahead (string match -r 'ahead ([0-9]+)' "$branch_line" | tail -1)
+            end
+            if string match -qr 'behind ([0-9]+)' "$branch_line"
+                set -l behind (string match -r 'behind ([0-9]+)' "$branch_line" | tail -1)
+            end
+        else if string match -q '?? '* "$line"
+            set untracked (math $untracked + 1)
+        else
+            set -l x (string sub -l 1 "$line")
+            set -l y (string sub -s 2 -l 1 "$line")
+            switch "$x"
+                case M A D R C
+                    set staged (math $staged + 1)
+            end
+            switch "$y"
+                case M A D R C
+                    set unstaged (math $unstaged + 1)
+            end
+        end
+    end < (git status --porcelain -b 2>/dev/null | psub)
+
+    test -z "$branch"; and return
+
+    set -l out "$branch"
+    set -l details ""
+
+    test $ahead -gt 0; and set details "$details↑$ahead "
+    test $behind -gt 0; and set details "$details↓$behind "
+    test $staged -gt 0; and set details "$details+$staged "
+    test $unstaged -gt 0; and set details "$details~$unstaged "
+    test $untracked -gt 0; and set details "$details?$untracked "
+    set details (string trim "$details")
+
+    test -n "$details"; and set out "$out $details"
+
+    printf '%s' "$out"
+
+    # Write cache
+    set -l cur_head (stat -f '%m' "$head_file" 2>/dev/null; or stat -c '%Y' "$head_file" 2>/dev/null)
+    set -l cur_index (stat -f '%m' "$index_file" 2>/dev/null; or stat -c '%Y' "$index_file" 2>/dev/null)
+    printf '%s %s\n' "$cur_head" "$cur_index" > "$cache_file"
+    printf '%s' "$out" > "$git_dir/.termeric_result"
+end
+
+# ── Prompt builder ──────────────────────────────────────────────
+function fish_prompt
+    set -l rc $status
+    set -l data ""
+    set -l arrow ""
+
+    # Window title
+    if test "$_tmerm_has_title" = yes
+        set data "\033]0;"(whoami)"@"(hostname)": "(pwd)"\a"
+    end
+
+    if test "$_tmerm_color" = yes
+        if test "$GIT_COLORS" != off
+            # ── POWERLINE MODE ──
+
+            # Exit code
+            if test "$PROMPT_EXIT_CODE" != off
+                if test $rc -eq 0
+                    set data "$data$BG_OK$TXT_BG_LIT ✓ $R"
+                    set arrow "$ARROW_OK"
+                else
+                    set data "$data$BG_FAIL$TXT_BG ✗ $rc $R"
+                    set arrow "$ARROW_FAIL"
+                end
+            end
+
+            # Session
+            if test -n "$arrow"
+                set data "$data$BG_USER$arrow$PSEP$R$BG_USER$TXT_BG"
+            else
+                set data "$data$BG_USER$TXT_BG"
+            end
+            set data "$data "(whoami)"@"(hostname)" $R"
+            set arrow "$ARROW_USER"
+
+            # Path
+            set data "$data$BG_PATH$arrow$PSEP$R$BG_PATH$TXT_BG_LIT"
+            set data "$data "(prompt_pwd)" $R"
+            set arrow "$ARROW_PATH"
+
+            # Git
+            set -l git_info (__tmerm_git_info)
+            if test -n "$git_info"
+                set data "$data$BG_GIT$arrow$PSEP$R$BG_GIT$TXT_BG_LIT"
+                set data "$data $git_info $R"
+                set arrow "$ARROW_GIT"
+            end
+
+            # Timing
+            if test "$PROMPT_CMD_TIME" != off; and test $__tmerm_timer -gt 0
+                set -l duration (math (date +%s) - $__tmerm_timer)
+                if test $duration -ge 2
+                    set data "$data$BG_TIME$arrow$PSEP$R$BG_TIME$TXT_BG"
+                    set data "$data ${duration}s $R"
+                    set arrow "$ARROW_TIME"
+                end
+            end
+
+            # Trailing separator
+            if test -n "$arrow"
+                set data "$data$arrow$PSEP$R"
+            end
+
+            # Output line 1
+            printf '%b' "$data"
+
+            # Line 2
+            if test -n "$arrow"
+                printf '%b' "$BG_PRM$TXT_BG_LIT %# $R$ARROW_BLACK$PSEP$R"
+            else
+                printf '%s' '$ '
+            end
+        else
+            # ── NORMAL MODE ──
+
+            if test "$PROMPT_EXIT_CODE" != off
+                if test $rc -eq 0
+                    set data "$data$TXT_OK✓$R "
+                else
+                    set data "$data$TXT_FAIL✗ $rc$R "
+                end
+            end
+
+            set data "$data$TXT_USER"(whoami)"@"(hostname)"$R "
+            set data "$data$TXT_PATH"(prompt_pwd)"$R"
+
+            set -l git_info (__tmerm_git_info)
+            if test -n "$git_info"
+                set data "$data $TXT_GIT($git_info)$R"
+            end
+
+            if test "$PROMPT_CMD_TIME" != off; and test $__tmerm_timer -gt 0
+                set -l duration (math (date +%s) - $__tmerm_timer)
+                if test $duration -ge 2
+                    set data "$data $TXT_TIME[$duration s]$R"
+                end
+            end
+
+            printf '%s' "$data"
+            printf '%s\n$ '
+        end
+    else
+        # ── MONOCHROME MODE ──
+        set data (whoami)"@"(hostname)":"(prompt_pwd)
+
+        set -l git_info (__tmerm_git_info)
+        if test -n "$git_info"
+            set data "$data ($git_info)"
+        end
+
+        if test $rc -ne 0
+            set data "[$rc] $data"
+        end
+
+        if test "$PROMPT_CMD_TIME" != off; and test $__tmerm_timer -gt 0
+            set -l duration (math (date +%s) - $__tmerm_timer)
+            if test $duration -ge 2
+                set data "$data [$duration s]"
+            end
+        end
+
+        printf '%s\n$ ' "$data"
+    end
+
+    set -g __tmerm_timer 0
+end

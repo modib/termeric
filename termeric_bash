@@ -1,0 +1,236 @@
+# termeric — Golden prompts for your terminal (bash)
+# Source: [ -f ~/.termeric_bash ] && . ~/.termeric_bash
+#
+# Configuration (set before sourcing):
+#   GIT_COLORS=on       Powerline-style background segments  (default: on)
+#   PROMPT_EXIT_CODE=on Show check/cross exit code indicator (default: on)
+#   PROMPT_CMD_TIME=on  Show command duration when >=2s       (default: off)
+#
+# Backward compat: GIT_COLORS=1, PROMPT_EXIT_CODE=0, etc.
+
+# ── Term detection (once) ──────────────────────────────────────
+case "$TERM" in
+    xterm-color|*-256color|*-truecolor) _tmerm_color=yes;;
+esac
+
+# ── Window title flag (evaluated once at source time) ──────────
+case "$TERM" in xterm*|rxvt*) _tmerm_has_title=yes;; esac
+
+# ── Color definitions (once) ──────────────────────────────────
+if [ "$_tmerm_color" = yes ]; then
+    E=$'\e'
+    R="\[${E}[0m\]"   B="\[${E}[1m\]"
+
+    BG_OK="\[${E}[48;2;0;210;0m\]";     ARROW_OK="\[${E}[38;2;0;210;0m\]"
+    BG_FAIL="\[${E}[48;2;220;50;50m\]"; ARROW_FAIL="\[${E}[38;2;220;50;50m\]"
+    BG_USER="\[${E}[48;2;50;100;220m\]";ARROW_USER="\[${E}[38;2;50;100;220m\]"
+    BG_PATH="\[${E}[48;2;0;190;190m\]"; ARROW_PATH="\[${E}[38;2;0;190;190m\]"
+    BG_GIT="\[${E}[48;2;220;180;0m\]";  ARROW_GIT="\[${E}[38;2;220;180;0m\]"
+    BG_TIME="\[${E}[48;2;200;50;200m\]";ARROW_TIME="\[${E}[38;2;200;50;200m\]"
+    BG_PRM="\[${E}[48;2;0;210;0m\]";    ARROW_PRM="\[${E}[38;2;0;210;0m\]"
+    ARROW_BLACK="\[${E}[38;2;0;0;0m\]"
+    TXT_BG_DARK="\[${E}[38;2;255;255;255m\]"
+    TXT_BG_LIT="\[${E}[38;2;0;0;0m\]"
+    TXT_OK="\[${E}[32m\]"
+    TXT_FAIL="\[${E}[1;31m\]"
+    TXT_USER="\[${E}[92m\]"
+    TXT_PATH="\[${E}[94m\]"
+    TXT_GIT="\[${E}[33m\]"
+    TXT_TIME="\[${E}[96m\]"
+    PSEP=''
+fi
+
+# ── Command duration tracking ──────────────────────────────────
+if [ "$_tmerm_color" = yes ]; then
+    __tmerm_timer=$SECONDS
+fi
+
+# ── Git info via cache (avoids fork when unchanged) ────────────
+__tmerm_git_info() {
+    # Fast exit: not in a git repo
+    git rev-parse --is-inside-work-tree &>/dev/null || return
+
+    local git_dir
+    git_dir=$(git rev-parse --git-dir 2>/dev/null) || return
+
+    local cache_file="$git_dir/.termeric_cache"
+    local head_file="$git_dir/HEAD"
+    local index_file="$git_dir/index"
+
+    # Check cache validity: HEAD and index mtime must match
+    if [ -f "$cache_file" ]; then
+        local cached_head cached_index
+        read -r cached_head cached_index < "$cache_file" 2>/dev/null
+        local cur_head cur_index
+        cur_head=$(stat -f '%m' "$head_file" 2>/dev/null || stat -c '%Y' "$head_file" 2>/dev/null)
+        cur_index=$(stat -f '%m' "$index_file" 2>/dev/null || stat -c '%Y' "$index_file" 2>/dev/null)
+        if [ "$cur_head" = "$cached_head" ] && [ "$cur_index" = "$cached_index" ]; then
+            # Cache hit — read stored result
+            local cache_result="$git_dir/.termeric_result"
+            if [ -f "$cache_result" ]; then
+                cat "$cache_result"
+                return
+            fi
+        fi
+    fi
+
+    # Cache miss — compute git status
+    local branch="" staged=0 unstaged=0 untracked=0 ahead=0 behind=0
+    local line
+
+    while IFS= read -r line; do
+        if [[ "$line" == "## "* ]]; then
+            local branch_line="${line#\#\# }"
+            branch="${branch_line%%...*}"
+            if [[ "$branch_line" =~ ahead\ ([0-9]+) ]]; then ahead="${BASH_REMATCH[1]}"; fi
+            if [[ "$branch_line" =~ behind\ ([0-9]+) ]]; then behind="${BASH_REMATCH[1]}"; fi
+        elif [[ "$line" == "?? "* ]]; then
+            untracked=$(( untracked + 1 ))
+        else
+            local x="${line:0:1}" y="${line:1:1}"
+            case "$x" in M|A|D|R|C) staged=$(( staged + 1 )) ;; esac
+            case "$y" in M|A|D|R|C) unstaged=$(( unstaged + 1 )) ;; esac
+        fi
+    done < <(git status --porcelain -b 2>/dev/null) || return
+
+    [ -z "$branch" ] && return
+
+    # Build output
+    local out="$branch"
+    local details=""
+    [ "$ahead" -gt 0 ]   && details+="↑$ahead "
+    [ "$behind" -gt 0 ]  && details+="↓$behind "
+    [ "$staged" -gt 0 ]  && details+="+$staged "
+    [ "$unstaged" -gt 0 ] && details+="~$unstaged "
+    [ "$untracked" -gt 0 ] && details+="?$untracked "
+    details="${details% }"
+    [ -n "$details" ] && out+=" $details"
+
+    printf '%s' "$out"
+
+    # Write cache
+    local cur_head cur_index
+    cur_head=$(stat -f '%m' "$head_file" 2>/dev/null || stat -c '%Y' "$head_file" 2>/dev/null)
+    cur_index=$(stat -f '%m' "$index_file" 2>/dev/null || stat -c '%Y' "$index_file" 2>/dev/null)
+    printf '%s %s\n' "$cur_head" "$cur_index" > "$cache_file"
+    printf '%s' "$out" > "$git_dir/.termeric_result"
+}
+
+# ── Prompt builder ──────────────────────────────────────────────
+__termeric_ps1() {
+    local rc=$?
+    local data=""
+    local arrow=""
+    local prompt_sep=""
+
+    # Window title (only if terminal supports it)
+    [ "$_tmerm_has_title" = yes ] && data+="\[\e]0;\u@\h: \w\a\]"
+
+    if [ "$_tmerm_color" = yes ]; then
+        if [ "${GIT_COLORS-${_tmerm_default_colors:-on}}" != "off" ]; then
+            # ── POWERLINE MODE ──
+
+            # Exit code
+            if [ "${PROMPT_EXIT_CODE-${_tmerm_default_exit:-on}}" != "off" ]; then
+                if [ "$rc" -eq 0 ]; then
+                    data+="${BG_OK}${B}${TXT_BG_LIT} ✓ ${R}"
+                    arrow="${ARROW_OK}"
+                else
+                    data+="${BG_FAIL}${B}${TXT_BG_DARK} ✗ $rc ${R}"
+                    arrow="${ARROW_FAIL}"
+                fi
+            fi
+
+            # Session
+            if [ -n "$arrow" ]; then
+                data+="${BG_USER}${arrow}${PSEP}${R}${BG_USER}${B}${TXT_BG_DARK}"
+            else
+                data+="${BG_USER}${B}${TXT_BG_DARK}"
+            fi
+            data+=" \u@\h ${R}"
+            arrow="${ARROW_USER}"
+
+            # Path
+            data+="${BG_PATH}${arrow}${PSEP}${R}${BG_PATH}${B}${TXT_BG_LIT}"
+            data+=" \w ${R}"
+            arrow="${ARROW_PATH}"
+
+            # Git
+            local git_info
+            git_info=$(__tmerm_git_info)
+            if [ -n "$git_info" ]; then
+                data+="${BG_GIT}${arrow}${PSEP}${R}${BG_GIT}${B}${TXT_BG_LIT}"
+                data+=" $git_info ${R}"
+                arrow="${ARROW_GIT}"
+            fi
+
+            # Timing
+            if [ "${PROMPT_CMD_TIME:-off}" != "off" ] && [ -n "$__tmerm_timer" ]; then
+                local duration=$(( SECONDS - __tmerm_timer ))
+                if [ "$duration" -ge 2 ]; then
+                    data+="${BG_TIME}${arrow}${PSEP}${R}${BG_TIME}${B}${TXT_BG_DARK}"
+                    data+=" ${duration}s ${R}"
+                    arrow="${ARROW_TIME}"
+                fi
+            fi
+
+            # Trailing separator
+            [ -n "$arrow" ] && data+="${arrow}${PSEP}${R}"
+
+            # Line 2
+            if [ -n "$arrow" ]; then
+                prompt_sep="${BG_PRM}${B}${TXT_BG_LIT} \$ ${R}${ARROW_BLACK}${PSEP}${R}"
+            else
+                prompt_sep="\$ "
+            fi
+        else
+            # ── NORMAL MODE ──
+
+            # Exit code
+            if [ "${PROMPT_EXIT_CODE-${_tmerm_default_exit:-on}}" != "off" ]; then
+                if [ "$rc" -eq 0 ]; then
+                    data+="${TXT_OK}✓${R} "
+                else
+                    data+="${TXT_FAIL}✗ $rc${R} "
+                fi
+            fi
+
+            data+="${TXT_USER}\u@\h${R} "
+            data+="${TXT_PATH}\w${R}"
+
+            local git_info
+            git_info=$(__tmerm_git_info)
+            [ -n "$git_info" ] && data+=" ${TXT_GIT}($git_info)${R}"
+
+            if [ "${PROMPT_CMD_TIME:-off}" != "off" ] && [ -n "$__tmerm_timer" ]; then
+                local duration=$(( SECONDS - __tmerm_timer ))
+                [ "$duration" -ge 2 ] && data+=" ${TXT_TIME}[${duration}s]${R}"
+            fi
+
+            prompt_sep="\$ "
+        fi
+    else
+        # ── MONOCHROME MODE ──
+        data+="\u@\h: \w"
+
+        local git_info
+        git_info=$(__tmerm_git_info)
+        [ -n "$git_info" ] && data+=" ($git_info)"
+
+        [ "$rc" -ne 0 ] && data="[$rc] $data"
+
+        if [ "${PROMPT_CMD_TIME:-off}" != "off" ] && [ -n "$__tmerm_timer" ]; then
+            local duration=$(( SECONDS - __tmerm_timer ))
+            [ "$duration" -ge 2 ] && data+=" [${duration}s]"
+        fi
+
+        prompt_sep="\$ "
+    fi
+
+    PS1="${data}"$'\n'"${prompt_sep}"
+
+    __tmerm_timer=$SECONDS
+    return "$rc"
+}
+
+PROMPT_COMMAND=__termeric_ps1

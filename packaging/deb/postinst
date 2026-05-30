@@ -1,0 +1,13 @@
+#!/bin/bash
+set -e
+
+echo ""
+echo "termeric installed successfully!"
+echo ""
+echo "To activate:"
+echo "  1. Run: termeric install"
+echo "  2. Then: exec bash  (or exec zsh)"
+echo ""
+echo "For powerline mode:"
+echo "  termeric font"
+echo ""

@@ -1,0 +1,418 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+TIRMERIC_VERSION="1.0.0"
+TIRMERIC_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+
+# ── Colors ──────────────────────────────────────────────────────
+if [ -t 1 ]; then
+    GOLD='\033[38;2;220;180;0m'
+    GREEN='\033[32m'
+    RED='\033[31m'
+    CYAN='\033[36m'
+    BOLD='\033[1m'
+    RESET='\033[0m'
+else
+    GOLD='' GREEN='' RED='' CYAN='' BOLD='' RESET=''
+fi
+
+# ── Helpers ─────────────────────────────────────────────────────
+_info()  { printf "${CYAN}▸${RESET} %s\n" "$*"; }
+_ok()    { printf "${GREEN}✓${RESET} %s\n" "$*"; }
+_warn()  { printf "${GOLD}⚠${RESET} %s\n" "$*"; }
+_err()   { printf "${RED}✗${RESET} %s\n" "$*" >&2; }
+
+_show_help() {
+    cat <<EOF
+${GOLD}${BOLD}termeric${RESET} — Golden prompts for your terminal
+
+${BOLD}Usage:${RESET}
+  termeric <command> [options]
+
+${BOLD}Commands:${RESET}
+  install       Install termeric to current shell
+  uninstall     Remove termeric from shell config
+  update        Pull latest version and reinstall
+  config        Open config in \$EDITOR
+  status        Show current settings and diagnostics
+  font          Install Meslo Nerd Font
+  doctor        Check system compatibility
+  version       Show version
+  help          Show this message
+
+${BOLD}Examples:${RESET}
+  termeric install           # quick setup
+  termeric install --font    # setup with Nerd Font
+  termeric status            # check what's active
+  termeric doctor            # verify system readiness
+
+${BOLD}Configuration:${RESET}
+  Set these before sourcing termeric:
+
+    bash/zsh:   export GIT_COLORS=on        (in ~/.bashrc or ~/.zshrc)
+    fish:       set -g GIT_COLORS on         (in ~/.config/fish/config.fish)
+
+    GIT_COLORS=on        Powerline segments (default: on)
+    PROMPT_EXIT_CODE=on  Show exit indicator (default: on)
+    PROMPT_CMD_TIME=on   Show command duration (default: off)
+
+${BOLD}Docs:${RESET}
+  https://github.com/modib/termeric
+EOF
+}
+
+# ── Detect shell ────────────────────────────────────────────────
+_detect_shell() {
+    local shell_name
+    shell_name="$(basename "${SHELL:-}" 2>/dev/null || true)"
+    if [ -z "$shell_name" ]; then
+        shell_name="$(basename "$(ps -p $$ -o comm= 2>/dev/null)" 2>/dev/null || echo "bash")"
+    fi
+    echo "$shell_name"
+}
+
+# ── Install ─────────────────────────────────────────────────────
+_cmd_install() {
+    local install_font=0
+    for arg in "$@"; do
+        case "$arg" in
+            --font) install_font=1 ;;
+            *) _err "Unknown option: $arg"; exit 1 ;;
+        esac
+    done
+
+    local shell_name
+    shell_name="$(_detect_shell)"
+    _info "Detected shell: ${BOLD}$shell_name${RESET}"
+
+    # Install bash config
+    if [ -f "$TIRMERIC_DIR/termeric_bash" ]; then
+        cp "$TIRMERIC_DIR/termeric_bash" "$HOME/.termeric_bash"
+        _ok "Copied termeric_bash to ~/.termeric_bash"
+
+        if ! grep -qxF '[ -f ~/.termeric_bash ] && . ~/.termeric_bash' "$HOME/.bashrc" 2>/dev/null; then
+            {
+                echo ""
+                echo "# termeric — golden prompt"
+                echo 'if [ -f ~/.termeric_bash ]; then'
+                echo '    . ~/.termeric_bash'
+                echo 'fi'
+            } >> "$HOME/.bashrc"
+            _ok "Added source line to ~/.bashrc"
+        else
+            _info "~/.bashrc already sources termeric_bash"
+        fi
+    fi
+
+    # Install zsh config
+    if [ -f "$TIRMERIC_DIR/termeric_zsh" ]; then
+        cp "$TIRMERIC_DIR/termeric_zsh" "$HOME/.termeric_zsh"
+        _ok "Copied termeric_zsh to ~/.termeric_zsh"
+
+        if ! grep -qxF '[ -f ~/.termeric_zsh ] && . ~/.termeric_zsh' "$HOME/.zshrc" 2>/dev/null; then
+            {
+                echo ""
+                echo "# termeric — golden prompt"
+                echo 'if [ -f ~/.termeric_zsh ]; then'
+                echo '    . ~/.termeric_zsh'
+                echo 'fi'
+            } >> "$HOME/.zshrc"
+            _ok "Added source line to ~/.zshrc"
+        else
+            _info "~/.zshrc already sources termeric_zsh"
+        fi
+    fi
+
+    # Install fish config
+    if [ -f "$TIRMERIC_DIR/termeric_fish" ]; then
+        local fish_config_dir="$HOME/.config/fish"
+        mkdir -p "$fish_config_dir"
+        cp "$TIRMERIC_DIR/termeric_fish" "$fish_config_dir/termeric_fish"
+        _ok "Copied termeric_fish to ~/.config/fish/termeric_fish"
+
+        local fish_config="$fish_config_dir/config.fish"
+        if ! grep -qxF 'source ~/.config/fish/termeric_fish' "$fish_config" 2>/dev/null; then
+            {
+                echo ""
+                echo "# termeric — golden prompt"
+                echo 'source ~/.config/fish/termeric_fish'
+            } >> "$fish_config"
+            _ok "Added source line to ~/.config/fish/config.fish"
+        else
+            _info "~/.config/fish/config.fish already sources termeric_fish"
+        fi
+    fi
+
+    # Install CLI to PATH if not already there
+    if [ ! -x "$HOME/.local/bin/termeric" ] && [ "$TIRMERIC_DIR/bin/termeric" != "$(which termeric 2>/dev/null || echo none)" ]; then
+        mkdir -p "$HOME/.local/bin"
+        ln -sf "$TIRMERIC_DIR/bin/termeric" "$HOME/.local/bin/termeric"
+        _ok "Symlinked termeric to ~/.local/bin/"
+
+        case ":$PATH:" in
+            *":$HOME/.local/bin:"*) ;;
+            *) _warn "Add ~/.local/bin to your PATH:\n  export PATH=\"\$HOME/.local/bin:\$PATH\"" ;;
+        esac
+    fi
+
+    # Font
+    if [ "$install_font" -eq 1 ]; then
+        _cmd_font
+    fi
+
+    echo ""
+    _ok "Termeric installed! Run ${BOLD}exec $shell_name${RESET} or open a new terminal."
+}
+
+# ── Uninstall ───────────────────────────────────────────────────
+_cmd_uninstall() {
+    _info "Removing termeric..."
+
+    rm -f "$HOME/.termeric_bash" "$HOME/.termeric_zsh"
+
+    # Remove source lines from bash/zsh
+    for rc_file in "$HOME/.bashrc" "$HOME/.zshrc"; do
+        if [ -f "$rc_file" ]; then
+            sed -i.bak '/# termeric — golden prompt/,+4d' "$rc_file" 2>/dev/null || \
+            sed -i '' '/# termeric — golden prompt/,+4d' "$rc_file" 2>/dev/null || true
+            rm -f "${rc_file}.bak"
+        fi
+    done
+
+    # Remove fish config
+    local fish_config_dir="$HOME/.config/fish"
+    rm -f "$fish_config_dir/termeric_fish"
+    if [ -f "$fish_config_dir/config.fish" ]; then
+        sed -i.bak '/# termeric — golden prompt/,+2d' "$fish_config_dir/config.fish" 2>/dev/null || \
+        sed -i '' '/# termeric — golden prompt/,+2d' "$fish_config_dir/config.fish" 2>/dev/null || true
+        rm -f "${fish_config_dir}/config.fish.bak"
+    fi
+
+    rm -f "$HOME/.local/bin/termeric"
+
+    _ok "Termeric removed. Restart your shell for changes to take effect."
+}
+
+# ── Update ──────────────────────────────────────────────────────
+_cmd_update() {
+    _info "Updating termeric..."
+    if [ -d "$TIRMERIC_DIR/.git" ]; then
+        git -C "$TIRMERIC_DIR" pull --rebase --quiet
+        _cmd_install
+        _ok "Updated to latest version"
+    else
+        _err "Not a git repository. Reinstall manually or clone from https://github.com/modib/termeric"
+        exit 1
+    fi
+}
+
+# ── Config ──────────────────────────────────────────────────────
+_cmd_config() {
+    local config_file="${TIRMERIC_CONFIG:-$HOME/.termericrc}"
+    if [ ! -f "$config_file" ]; then
+        cat > "$config_file" <<'CONF'
+# termeric configuration
+# Set these to override defaults
+
+# GIT_COLORS=on       # Powerline segments (on/off)
+# PROMPT_EXIT_CODE=on # Exit indicator (on/off)
+# PROMPT_CMD_TIME=off # Command duration (on/off)
+CONF
+        _info "Created config at $config_file"
+    fi
+    "${EDITOR:-vi}" "$config_file"
+}
+
+# ── Status ──────────────────────────────────────────────────────
+_cmd_status() {
+    echo ""
+    printf "${GOLD}${BOLD}termeric${RESET} v${TIRMERIC_VERSION}\n"
+    echo "─────────────────────────────────────"
+
+    # Shell
+    printf "  Shell:         %s\n" "$(_detect_shell)"
+
+    # Installed files
+    for f in ~/.termeric_bash ~/.termeric_zsh ~/.config/fish/termeric_fish; do
+        if [ -f "$f" ]; then
+            printf "  %-22s ${GREEN}installed${RESET}\n" "$(basename $f)"
+        else
+            printf "  %-22s ${RED}not found${RESET}\n" "$(basename $f)"
+        fi
+    done
+
+    # Sourced in rc
+    for rc in ~/.bashrc ~/.zshrc ~/.config/fish/config.fish; do
+        if [ -f "$rc" ] && grep -q "termeric" "$rc" 2>/dev/null; then
+            printf "  %-22s ${GREEN}sourced${RESET}\n" "$(basename $rc)"
+        else
+            printf "  %-22s ${RED}not sourced${RESET}\n" "$(basename $rc)"
+        fi
+    done
+
+    # Font
+    if fc-list 2>/dev/null | grep -qi "meslo.*nerd\|nerd.*meslo" || \
+       ls ~/Library/Fonts/ 2>/dev/null | grep -qi "meslo.*nerd\|nerd.*meslo" || \
+       ls ~/.local/share/fonts/ 2>/dev/null | grep -qi "meslo.*nerd\|nerd.*meslo"; then
+        printf "  Nerd Font:     ${GREEN}installed${RESET}\n"
+    else
+        printf "  Nerd Font:     ${RED}not installed${RESET} (run: termeric font)\n"
+    fi
+
+    # Git cache
+    if [ -d .git ]; then
+        local cache=".git/.termeric_cache"
+        if [ -f "$cache" ]; then
+            printf "  Git cache:     ${GREEN}active${RESET}\n"
+        else
+            printf "  Git cache:     ${GOLD}cold${RESET}\n"
+        fi
+    fi
+
+    echo ""
+}
+
+# ── Font ────────────────────────────────────────────────────────
+_cmd_font() {
+    _info "Installing Meslo Nerd Font..."
+
+    if fc-list 2>/dev/null | grep -qi "meslo.*nerd\|nerd.*meslo" || \
+       ls ~/Library/Fonts/ 2>/dev/null | grep -qi "meslo.*nerd\|nerd.*meslo" || \
+       ls ~/.local/share/fonts/ 2>/dev/null | grep -qi "meslo.*nerd\|nerd.*meslo"; then
+        _ok "Meslo Nerd Font already installed"
+        return 0
+    fi
+
+    # Use bundled fonts if available
+    local bundled_dir="$TIRMERIC_DIR/fonts"
+    if [ -d "$bundled_dir" ] && [ -n "$(ls -A "$bundled_dir"/*.ttf 2>/dev/null)" ]; then
+        if [ "$(uname)" = "Darwin" ]; then
+            mkdir -p ~/Library/Fonts
+            cp "$bundled_dir"/*.ttf ~/Library/Fonts/
+            _ok "Installed bundled MesloLGS Nerd Font to ~/Library/Fonts/"
+        else
+            mkdir -p ~/.local/share/fonts
+            cp "$bundled_dir"/*.ttf ~/.local/share/fonts/
+            fc-cache -f 2>/dev/null || true
+            _ok "Installed bundled MesloLGS Nerd Font to ~/.local/share/fonts/"
+        fi
+    elif command -v brew &>/dev/null; then
+        brew install --cask font-meslo-lg-nerd-font
+        _ok "Font installed via Homebrew"
+    else
+        local url="https://github.com/ryanoasis/nerd-fonts/releases/download/v3.4.0/Meslo.zip"
+        local tmpdir
+        tmpdir="$(mktemp -d)"
+        (
+            cd "$tmpdir" || exit 1
+            curl -fsSL "$url" -o Meslo.zip || wget -q "$url" -O Meslo.zip
+            unzip -q Meslo.zip -d meslo-nerd
+            if [ "$(uname)" = "Darwin" ]; then
+                mkdir -p ~/Library/Fonts
+                cp meslo-nerd/*.ttf ~/Library/Fonts/
+            else
+                mkdir -p ~/.local/share/fonts
+                cp meslo-nerd/*.ttf ~/.local/share/fonts/
+                fc-cache -f 2>/dev/null || true
+            fi
+        )
+        rm -rf "$tmpdir"
+        _ok "Font downloaded and installed"
+    fi
+
+    _info "Set your terminal to use 'MesloLGS Nerd Font'."
+}
+
+# ── Doctor ──────────────────────────────────────────────────────
+_cmd_doctor() {
+    echo ""
+    printf "${GOLD}${BOLD}termeric doctor${RESET}\n"
+    echo "─────────────────────────────────────"
+
+    local issues=0
+
+    # Bash version
+    if [ -n "${BASH_VERSION:-}" ]; then
+        if [[ "$BASH_VERSION" < "4." ]]; then
+            _warn "Bash $BASH_VERSION — version 4+ recommended for best performance"
+            issues=$((issues + 1))
+        else
+            _ok "Bash $BASH_VERSION"
+        fi
+    fi
+
+    # Zsh
+    if command -v zsh &>/dev/null; then
+        _ok "zsh $(zsh --version 2>/dev/null | awk '{print $2}')"
+    else
+        _warn "zsh not found"
+    fi
+
+    # Fish
+    if command -v fish &>/dev/null; then
+        _ok "fish $(fish --version 2>/dev/null | awk '{print $3}')"
+    else
+        _warn "fish not found"
+    fi
+
+    # Git
+    if command -v git &>/dev/null; then
+        _ok "git $(git --version 2>/dev/null | awk '{print $3}')"
+    else
+        _err "git not found — required for git prompt features"
+        issues=$((issues + 1))
+    fi
+
+    # stat (needed for cache)
+    if stat --version &>/dev/null 2>&1 || stat -f '%m' /dev/null &>/dev/null 2>&1; then
+        _ok "stat (for cache)"
+    else
+        _warn "stat not available — caching may not work"
+    fi
+
+    # Terminal
+    case "${TERM:-}" in
+        xterm-color|*-256color|*-truecolor)
+            _ok "Terminal supports color ($TERM)"
+            ;;
+        *)
+            _warn "Terminal may not support truecolor ($TERM)"
+            ;;
+    esac
+
+    # Font
+    if fc-list 2>/dev/null | grep -qi "meslo.*nerd\|nerd.*meslo" || \
+       ls ~/Library/Fonts/ 2>/dev/null | grep -qi "meslo.*nerd\|nerd.*meslo" || \
+       ls ~/.local/share/fonts/ 2>/dev/null | grep -qi "meslo.*nerd\|nerd.*meslo"; then
+        _ok "Meslo Nerd Font installed"
+    else
+        _warn "Meslo Nerd Font not installed (run: termeric font)"
+    fi
+
+    echo ""
+    if [ "$issues" -eq 0 ]; then
+        _ok "All checks passed!"
+    else
+        _warn "$issues issue(s) found"
+    fi
+    echo ""
+}
+
+# ── Version ─────────────────────────────────────────────────────
+_cmd_version() {
+    echo "termeric $TIRMERIC_VERSION"
+}
+
+# ── Main ────────────────────────────────────────────────────────
+case "${1:-help}" in
+    install)   shift; _cmd_install "$@" ;;
+    uninstall) _cmd_uninstall ;;
+    update)    _cmd_update ;;
+    config)    _cmd_config ;;
+    status)    _cmd_status ;;
+    font)      _cmd_font ;;
+    doctor)    _cmd_doctor ;;
+    version)   _cmd_version ;;
+    help|-h|--help) _show_help ;;
+    *) _err "Unknown command: $1"; _show_help; exit 1 ;;
+esac

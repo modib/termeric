@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>termeric — Golden prompts for your terminal</title>
+    <meta name="description" content="A modernized, AI-ready shell prompt for bash, zsh, and fish with powerline segments, git status caching, and sub-10ms rendering.">
+    <style>
+        :root {
+            --gold: #DCB400;
+            --gold-dark: #B8960A;
+            --gold-light: #F5E6A3;
+            --bg: #0D1117;
+            --bg-card: #161B22;
+            --text: #E6EDF3;
+            --text-muted: #8B949E;
+            --border: #30363D;
+            --green: #3FB950;
+            --red: #F85149;
+            --blue: #58A6FF;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        /* Hero */
+        .hero {
+            text-align: center;
+            padding: 80px 0 60px;
+        }
+
+        .hero-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, var(--gold), var(--gold-dark));
+            color: var(--bg);
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 24px;
+        }
+
+        h1 {
+            font-size: 56px;
+            font-weight: 800;
+            margin-bottom: 16px;
+            background: linear-gradient(135deg, var(--gold), var(--gold-light));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero-subtitle {
+            font-size: 20px;
+            color: var(--text-muted);
+            max-width: 600px;
+            margin: 0 auto 40px;
+        }
+
+        .hero-buttons {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: var(--gold);
+            color: var(--bg);
+        }
+
+        .btn-primary:hover {
+            background: var(--gold-light);
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: var(--bg-card);
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--gold);
+            transform: translateY(-2px);
+        }
+
+        /* Preview */
+        .preview {
+            margin: 60px 0;
+        }
+
+        .terminal {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+        }
+
+        .terminal-header {
+            background: var(--border);
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .terminal-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .terminal-dot.red { background: var(--red); }
+        .terminal-dot.yellow { background: var(--gold); }
+        .terminal-dot.green { background: var(--green); }
+
+        .terminal-body {
+            padding: 24px;
+            font-family: 'MesloLGS Nerd Font', 'SF Mono', 'Fira Code', monospace;
+            font-size: 14px;
+            line-height: 1.8;
+        }
+
+        .prompt-powerline {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .segment {
+            padding: 4px 12px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .segment-ok { background: #00D200; color: #000; }
+        .segment-user { background: #3264DC; color: #FFF; }
+        .segment-path { background: #00BEBE; color: #000; }
+        .segment-git { background: var(--gold); color: #000; }
+        .segment-time { background: #C832C8; color: #FFF; }
+        .segment-prompt { background: #00D200; color: #000; }
+
+        .arrow {
+            width: 0;
+            height: 0;
+            border-top: 12px solid transparent;
+            border-bottom: 12px solid transparent;
+        }
+
+        .arrow-ok { border-left: 12px solid #00D200; }
+        .arrow-user { border-left: 12px solid #3264DC; }
+        .arrow-path { border-left: 12px solid #00BEBE; }
+        .arrow-git { border-left: 12px solid var(--gold); }
+        .arrow-time { border-left: 12px solid #C832C8; }
+        .arrow-prompt { border-left: 12px solid #000; }
+
+        .prompt-symbol {
+            color: var(--text-muted);
+        }
+
+        /* Features */
+        .features {
+            margin: 80px 0;
+        }
+
+        .features h2 {
+            text-align: center;
+            font-size: 36px;
+            margin-bottom: 48px;
+            color: var(--gold);
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 24px;
+        }
+
+        .feature-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+            transition: all 0.2s;
+        }
+
+        .feature-card:hover {
+            border-color: var(--gold);
+            transform: translateY(-4px);
+        }
+
+        .feature-icon {
+            font-size: 32px;
+            margin-bottom: 12px;
+        }
+
+        .feature-card h3 {
+            font-size: 18px;
+            margin-bottom: 8px;
+            color: var(--text);
+        }
+
+        .feature-card p {
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+
+        /* Install */
+        .install {
+            margin: 80px 0;
+            text-align: center;
+        }
+
+        .install h2 {
+            font-size: 36px;
+            margin-bottom: 24px;
+            color: var(--gold);
+        }
+
+        .install-commands {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .install-cmd {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 16px 20px;
+            text-align: left;
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .install-cmd code {
+            color: var(--gold);
+        }
+
+        .copy-btn {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            padding: 4px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+
+        .copy-btn:hover {
+            border-color: var(--gold);
+            color: var(--gold);
+        }
+
+        /* Performance */
+        .perf {
+            margin: 80px 0;
+        }
+
+        .perf h2 {
+            text-align: center;
+            font-size: 36px;
+            margin-bottom: 24px;
+            color: var(--gold);
+        }
+
+        .perf-subtitle {
+            text-align: center;
+            color: var(--text-muted);
+            margin-bottom: 48px;
+        }
+
+        .perf-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--bg-card);
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+
+        .perf-table th,
+        .perf-table td {
+            padding: 16px 24px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .perf-table th {
+            background: var(--border);
+            color: var(--text);
+            font-weight: 600;
+        }
+
+        .perf-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .perf-table tr.highlight {
+            background: rgba(220, 180, 0, 0.1);
+        }
+
+        .perf-table td:last-child {
+            font-weight: 600;
+        }
+
+        .perf-fast { color: var(--green); }
+        .perf-slow { color: var(--red); }
+
+        /* Footer */
+        footer {
+            margin-top: 80px;
+            padding: 40px 0;
+            border-top: 1px solid var(--border);
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+
+        footer a {
+            color: var(--gold);
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            text-decoration: underline;
+        }
+
+        /* Responsive */
+        @media (max-width: 640px) {
+            h1 { font-size: 36px; }
+            .hero-subtitle { font-size: 16px; }
+            .terminal-body { font-size: 12px; padding: 16px; }
+            .segment { padding: 2px 8px; font-size: 12px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Hero -->
+        <section class="hero">
+            <span class="hero-badge">v1.0.0</span>
+            <h1>termeric</h1>
+            <p class="hero-subtitle">
+                Golden prompts for your terminal. A modernized shell prompt for bash, zsh, and fish with powerline segments, git status caching, and sub-10ms rendering.
+            </p>
+            <div class="hero-buttons">
+                <a href="https://github.com/modib/termeric#installation" class="btn btn-primary">
+                    Get Started
+                </a>
+                <a href="https://github.com/modib/termeric" class="btn btn-secondary">
+                    View on GitHub
+                </a>
+            </div>
+        </section>
+
+        <!-- Preview -->
+        <section class="preview">
+            <div class="terminal">
+                <div class="terminal-header">
+                    <div class="terminal-dot red"></div>
+                    <div class="terminal-dot yellow"></div>
+                    <div class="terminal-dot green"></div>
+                </div>
+                <div class="terminal-body">
+                    <div class="prompt-powerline">
+                        <span class="segment segment-ok">✓</span>
+                        <span class="arrow arrow-ok"></span>
+                        <span class="segment segment-user">user@host</span>
+                        <span class="arrow arrow-user"></span>
+                        <span class="segment segment-path">~/projects/termeric</span>
+                        <span class="arrow arrow-path"></span>
+                        <span class="segment segment-git">main +3 ~1</span>
+                        <span class="arrow arrow-git"></span>
+                        <span class="segment segment-time">2s</span>
+                        <span class="arrow arrow-time"></span>
+                    </div>
+                    <div class="prompt-powerline">
+                        <span class="segment segment-prompt">$</span>
+                        <span class="arrow arrow-prompt"></span>
+                        <span class="prompt-symbol">&nbsp;</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Features -->
+        <section class="features">
+            <h2>Why termeric?</h2>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">⚡</div>
+                    <h3>Blazing Fast</h3>
+                    <p>Git status caching with sub-10ms prompt rendering. No more waiting for your prompt.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🎨</div>
+                    <h3>Beautiful Powerline</h3>
+                    <p>24-bit truecolor segments with smooth arrow separators. Looks great in any modern terminal.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🔧</div>
+                    <h3>Three Shells</h3>
+                    <p>Full support for bash, zsh, and fish with visual parity across all three.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">📦</div>
+                    <h3>Bundled Font</h3>
+                    <p>MesloLGS Nerd Font included. No extra downloads needed — just install and go.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🧹</div>
+                    <h3>Clean Config</h3>
+                    <p>Simple env vars for features. No complex config files to maintain.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🚀</div>
+                    <h3>Easy Install</h3>
+                    <p>One command setup via Homebrew, deb, rpm, AUR, or direct install.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Performance -->
+        <section class="perf">
+            <h2>Performance</h2>
+            <p class="perf-subtitle">Average prompt render time in a medium git repository</p>
+            <table class="perf-table">
+                <thead>
+                    <tr>
+                        <th>Tool</th>
+                        <th>Render Time</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr class="highlight">
+                        <td><strong>termeric</strong></td>
+                        <td class="perf-fast">~8ms</td>
+                        <td class="perf-fast">Blazing fast</td>
+                    </tr>
+                    <tr>
+                        <td>starship</td>
+                        <td>~45ms</td>
+                        <td>Good</td>
+                    </tr>
+                    <tr>
+                        <td>oh-my-posh</td>
+                        <td>~80ms</td>
+                        <td>Moderate</td>
+                    </tr>
+                    <tr>
+                        <td>pure</td>
+                        <td>~30ms</td>
+                        <td>Good</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <!-- Install -->
+        <section class="install">
+            <h2>Get Started in Seconds</h2>
+            <div class="install-commands">
+                <div class="install-cmd">
+                    <code>brew tap modib/termeric && brew install termeric</code>
+                    <button class="copy-btn" onclick="copyCmd(this)">Copy</button>
+                </div>
+                <div class="install-cmd">
+                    <code>termeric install</code>
+                    <button class="copy-btn" onclick="copyCmd(this)">Copy</button>
+                </div>
+                <div class="install-cmd">
+                    <code>exec zsh</code>
+                    <button class="copy-btn" onclick="copyCmd(this)">Copy</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer>
+            <p>
+                Built with care by <a href="https://github.com/modib">modib</a> •
+                <a href="https://github.com/modib/termeric">GitHub</a> •
+                <a href="https://github.com/modib/termeric/blob/main/LICENSE">MIT License</a>
+            </p>
+        </footer>
+    </div>
+
+    <script>
+        function copyCmd(btn) {
+            const code = btn.previousElementSibling.textContent;
+            navigator.clipboard.writeText(code);
+            btn.textContent = 'Copied!';
+            setTimeout(() => btn.textContent = 'Copy', 2000);
+        }
+    </script>
+</body>
+</html>

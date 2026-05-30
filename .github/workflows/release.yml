@@ -1,0 +1,93 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get version from tag
+        id: version
+        run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Run tests
+        run: make test
+
+      - name: Build release tarball
+        run: |
+          tar czf termeric-${{ steps.version.outputs.version }}.tar.gz \
+            --transform='s,^,termeric-${{ steps.version.outputs.version }}/,' \
+            termeric_bash termeric_zsh bin/ completions/ Homebrew/ packaging/ LICENSE README.md VERSION
+
+      - name: Build deb package
+        run: |
+          mkdir -p /tmp/termeric-pkg/DEBIAN
+          mkdir -p /tmp/termeric-pkg/usr/bin
+          mkdir -p /tmp/termeric-pkg/usr/share/termeric
+          mkdir -p /tmp/termeric-pkg/usr/share/bash-completion/completions
+          mkdir -p /tmp/termeric-pkg/usr/share/zsh/site-functions
+          mkdir -p /tmp/termeric-pkg/usr/share/fish/vendor_completions.d
+          cp bin/termeric /tmp/termeric-pkg/usr/bin/
+          cp termeric_bash termeric_zsh /tmp/termeric-pkg/usr/share/termeric/
+          cp completions/termeric.bash /tmp/termeric-pkg/usr/share/bash-completion/completions/termeric
+          cp completions/termeric.zsh /tmp/termeric-pkg/usr/share/zsh/site-functions/_termeric
+          cp completions/termeric.fish /tmp/termeric-pkg/usr/share/fish/vendor_completions.d/
+          cat > /tmp/termeric-pkg/DEBIAN/control << EOF
+          Package: termeric
+          Version: ${{ steps.version.outputs.version }}
+          Section: utils
+          Priority: optional
+          Architecture: all
+          Depends: bash, zsh, git
+          Maintainer: modib <noreply@github.com>
+          Homepage: https://github.com/modib/termeric
+          Description: Golden prompts for your terminal
+           AI-powered, modernized shell prompt for bash and zsh.
+          EOF
+          dpkg-deb --build /tmp/termeric-pkg termeric_${{ steps.version.outputs.version }}_all.deb
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: termeric v${{ steps.version.outputs.version }}
+          body: |
+            ## termeric ${{ steps.version.outputs.version }}
+
+            Golden prompts for your terminal.
+
+            ### Install
+
+            **macOS (Homebrew):**
+            ```bash
+            brew tap modib/termeric
+            brew install termeric
+            ```
+
+            **Linux (deb):**
+            ```bash
+            dpkg -i termeric_${{ steps.version.outputs.version }}_all.deb
+            ```
+
+            **Any platform:**
+            ```bash
+            curl -fsSL https://raw.githubusercontent.com/modib/termeric/main/install.sh | bash
+            ```
+
+            ### Quick Start
+            ```bash
+            termeric install
+            exec bash  # or exec zsh
+            ```
+          files: |
+            termeric-${{ steps.version.outputs.version }}.tar.gz
+            termeric_${{ steps.version.outputs.version }}_all.deb
+          draft: false
+          prerelease: false

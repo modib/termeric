@@ -1,0 +1,13 @@
+Package: termeric
+Version: 1.0.0
+Section: utils
+Priority: optional
+Architecture: all
+Depends: bash, zsh, git
+Recommends: fish
+Maintainer: modib <noreply@github.com>
+Homepage: https://github.com/modib/termeric
+Description: Golden prompts for your terminal
+ AI-powered, modernized shell prompt for bash, zsh, and fish with
+ powerline segments, git status caching, and command timing.
+ Fast, lightweight, and extensible.

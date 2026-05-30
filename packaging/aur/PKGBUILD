@@ -1,0 +1,25 @@
+# Maintainer: modib <noreply@github.com>
+pkgname=termeric
+pkgver=1.0.0
+pkgrel=1
+pkgdesc='Golden prompts for your terminal — AI-powered shell prompt for bash, zsh, and fish'
+arch=('x86_64' 'aarch64' 'any')
+url='https://github.com/modib/termeric'
+license=('MIT')
+depends=('bash' 'zsh' 'git')
+makedepends=('git')
+source=("$url/archive/v$pkgver.tar.gz")
+sha256sums=('SKIP')
+backup=()
+
+package() {
+    cd "$srcdir/termeric-$pkgver"
+
+    install -Dm755 bin/termeric "$pkgdir/usr/bin/termeric"
+    install -Dm644 termeric_bash "$pkgdir/usr/share/termeric/termeric_bash"
+    install -Dm644 termeric_zsh "$pkgdir/usr/share/termeric/termeric_zsh"
+    install -Dm644 termeric_fish "$pkgdir/usr/share/termeric/termeric_fish"
+    install -Dm644 completions/termeric.bash "$pkgdir/usr/share/bash-completion/completions/termeric"
+    install -Dm644 completions/termeric.zsh "$pkgdir/usr/share/zsh/site-functions/_termeric"
+    install -Dm644 completions/termeric.fish "$pkgdir/usr/share/fish/vendor_completions.d/termeric.fish"
+}
