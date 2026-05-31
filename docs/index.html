@@ -164,28 +164,28 @@
             align-items: center;
             gap: 6px;
             font-family: 'MesloLGS Nerd Font', 'SF Mono', 'Fira Code', monospace;
+            clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 50%, calc(100% - 12px) 100%, 0 100%, 12px 50%);
+            margin-right: -12px;
+        }
+
+        .segment:first-child {
+            clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 50%, calc(100% - 12px) 100%, 0 100%);
+        }
+
+        .segment:last-child {
+            clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%, 12px 50%);
         }
 
         .segment-ok { background: #00D200; color: #000; }
         .segment-user { background: #3264DC; color: #FFF; }
         .segment-path { background: #00BEBE; color: #000; }
-        .segment-git { background: var(--gold); color: #000; }
+        .segment-git { background: #DCB400; color: #000; }
         .segment-time { background: #C832C8; color: #FFF; }
         .segment-prompt { background: #00D200; color: #000; }
 
         .arrow {
-            width: 0;
-            height: 0;
-            border-top: 14px solid transparent;
-            border-bottom: 14px solid transparent;
+            display: none;
         }
-
-        .arrow-ok { border-left: 14px solid #3264DC; }
-        .arrow-user { border-left: 14px solid #00BEBE; }
-        .arrow-path { border-left: 14px solid #DCB400; }
-        .arrow-git { border-left: 14px solid #C832C8; }
-        .arrow-time { border-left: 14px solid #00D200; }
-        .arrow-prompt { border-left: 14px solid transparent; }
 
         .prompt-symbol {
             color: var(--text-muted);
@@ -417,13 +417,9 @@
                 <div class="terminal-body">
                     <div class="prompt-powerline">
                         <span class="segment segment-ok">✓</span>
-                        <span class="arrow arrow-ok"></span>
                         <span class="segment segment-user">user@host</span>
-                        <span class="arrow arrow-user"></span>
                         <span class="segment segment-path">~/projects/termeric</span>
-                        <span class="arrow arrow-path"></span>
                         <span class="segment segment-git">main +3 ~1</span>
-                        <span class="arrow arrow-git"></span>
                         <span class="segment segment-time">2s</span>
                     </div>
                     <div class="prompt-powerline">
