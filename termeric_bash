@@ -31,6 +31,7 @@ __tmerm_init_colors() {
     BG_GIT="\[${E}[48;2;220;180;0m\]";  ARROW_GIT="\[${E}[38;2;220;180;0m\]"
     BG_TIME="\[${E}[48;2;200;50;200m\]";ARROW_TIME="\[${E}[38;2;200;50;200m\]"
     BG_PRM="\[${E}[48;2;0;210;0m\]";   ARROW_PRM="\[${E}[38;2;0;210;0m\]"
+    ARROW_BLACK="\[${E}[38;2;30;30;30m\]"
     TXT_BG_DARK="\[${E}[97m\]"
     TXT_BG_LIT="\[${E}[30m\]"
 
@@ -144,10 +145,10 @@ __termeric_ps1() {
             # Exit code
             if [ "${PROMPT_EXIT_CODE-${_tmerm_default_exit:-on}}" != "off" ]; then
                 if [ "$rc" -eq 0 ]; then
-                    data+="${BG_OK}${ARROW_OK}${psep_left}${B}${TXT_BG_LIT} ✓ ${R}"
+                    data+="${BG_OK}${ARROW_BLACK}${PSEP}${B}${TXT_BG_LIT} ✓ ${R}"
                     arrow="${ARROW_OK}"
                 else
-                    data+="${BG_FAIL}${ARROW_FAIL}${psep_left}${B}${TXT_BG_DARK} ✗ $rc ${R}"
+                    data+="${BG_FAIL}${ARROW_BLACK}${PSEP}${B}${TXT_BG_DARK} ✗ $rc ${R}"
                     arrow="${ARROW_FAIL}"
                 fi
             fi
@@ -192,7 +193,7 @@ __termeric_ps1() {
 
             # Line 2: leading arrow + prompt char + trailing arrow
             if [ -n "$arrow" ]; then
-                prompt_sep="${BG_OK}${ARROW_OK}${psep_left}${BG_PRM}${B}${TXT_BG_LIT} \$ ${R}${ARROW_OK}${PSEP}${R}"
+                prompt_sep="${BG_PRM}${ARROW_BLACK}${PSEP}${B}${TXT_BG_LIT} \$ ${R}${ARROW_OK}${PSEP}${R}"
             else
                 prompt_sep="\$ "
             fi

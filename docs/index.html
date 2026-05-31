@@ -169,7 +169,13 @@
         }
 
         .segment:first-child {
-            clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 50%, calc(100% - 12px) 100%, 0 100%, 12px 50%);
+            clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 50%, calc(100% - 12px) 100%, 0 100%);
+        }
+
+        .segment:first-child::before {
+            content: "";
+            color: #1E1E1E;
+            margin-right: 4px;
         }
 
         .segment:last-child {
@@ -208,10 +214,6 @@
             border-top: 14px solid transparent;
             border-bottom: 14px solid transparent;
             border-right: 14px solid #00D200;
-        }
-
-        .arrow {
-            display: none;
         }
 
         .prompt-symbol {

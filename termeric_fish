@@ -45,7 +45,7 @@ if test "$_tmerm_color" = yes
     set -g ARROW_PATH   (set_color 00BEBE)
     set -g ARROW_GIT    (set_color DCB400)
     set -g ARROW_TIME   (set_color C832C8)
-    set -g ARROW_BLACK  (set_color 000000)
+    set -g ARROW_BLACK  (set_color 1e1e1e)
 
     # Text on dark backgrounds
     set -g TXT_BG     (set_color FFFFFF)
@@ -179,10 +179,10 @@ function fish_prompt
             # Exit code
             if test "$PROMPT_EXIT_CODE" != off
                 if test $rc -eq 0
-                    set data "$data$BG_OK$ARROW_OK$PSEP_LEFT$TXT_BG_LIT ✓ $R"
+                    set data "$data$BG_OK$ARROW_BLACK$PSEP$TXT_BG_LIT ✓ $R"
                     set arrow "$ARROW_OK"
                 else
-                    set data "$data$BG_FAIL$ARROW_FAIL$PSEP_LEFT$TXT_BG ✗ $rc $R"
+                    set data "$data$BG_FAIL$ARROW_BLACK$PSEP$TXT_BG ✗ $rc $R"
                     set arrow "$ARROW_FAIL"
                 end
             end
@@ -229,7 +229,7 @@ function fish_prompt
 
             # Line 2: leading arrow + prompt char + trailing arrow
             if test -n "$arrow"
-                printf '%b' "$BG_OK$ARROW_OK$PSEP_LEFT$BG_PRM$TXT_BG_LIT %# $R$ARROW_OK$PSEP$R"
+                printf '%b' "$BG_PRM$ARROW_BLACK$PSEP$TXT_BG_LIT %# $R$ARROW_OK$PSEP$R"
             else
                 printf '%s' '$ '
             end
