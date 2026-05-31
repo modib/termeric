@@ -59,6 +59,8 @@ Set these in your shell config **before** sourcing termeric:
 | `GIT_COLORS` | `on` | Powerline segments with background colors |
 | `PROMPT_EXIT_CODE` | `on` | Show ✓/✗ exit code indicator |
 | `PROMPT_CMD_TIME` | `off` | Show command duration when ≥2s |
+| `PROMPT_COLOR_MODE` | `256color` | Color mode: `256color` (truecolor) or `xterm` (16-color) |
+| `PROMPT_USER_HOST` | `on` | Show user@host segment |
 
 **bash/zsh** (in `~/.bashrc` or `~/.zshrc`):
 
@@ -66,6 +68,8 @@ Set these in your shell config **before** sourcing termeric:
 export GIT_COLORS=on
 export PROMPT_EXIT_CODE=on
 export PROMPT_CMD_TIME=on
+export PROMPT_COLOR_MODE=256color  # or xterm for basic terminals
+export PROMPT_USER_HOST=on
 ```
 
 **fish** (in `~/.config/fish/config.fish`):
