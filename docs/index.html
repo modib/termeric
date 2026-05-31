@@ -489,6 +489,39 @@
             line-height: 1.5;
         }
 
+        .code-block-wrapper {
+            position: relative;
+        }
+
+        .code-block-wrapper pre {
+            margin: 0;
+        }
+
+        .copy-hover-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            padding: 4px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            opacity: 0;
+            transition: opacity 0.2s, color 0.2s, border-color 0.2s;
+            z-index: 1;
+        }
+
+        .code-block-wrapper:hover .copy-hover-btn {
+            opacity: 1;
+        }
+
+        .copy-hover-btn:hover {
+            border-color: var(--gold);
+            color: var(--gold);
+        }
+
         .docs-faq {
             display: flex;
             flex-direction: column;
@@ -711,17 +744,23 @@
             </table>
             <div class="docs-example">
                 <p><strong>bash/zsh</strong> (in <code>~/.bashrc</code> or <code>~/.zshrc</code>):</p>
-                <pre><code>export PROMPT_COLOR_MODE=on
-        export PROMPT_EXIT_CODE=on
-        export PROMPT_CMD_TIME=off
-        export PROMPT_USER_HOST=off</code></pre>
+                <div class="code-block-wrapper">
+                    <pre><code>export PROMPT_COLOR_MODE=on
+export PROMPT_EXIT_CODE=on
+export PROMPT_CMD_TIME=off
+export PROMPT_USER_HOST=off</code></pre>
+                    <button class="copy-hover-btn" onclick="copyHoverCode(this)">Copy</button>
+                </div>
             </div>
             <div class="docs-example">
                 <p><strong>fish</strong> (in <code>~/.config/fish/config.fish</code>):</p>
-                <pre><code>set -g PROMPT_COLOR_MODE on
-        set -g PROMPT_EXIT_CODE on
-        set -g PROMPT_CMD_TIME off
-        set -g PROMPT_USER_HOST off</code></pre>
+                <div class="code-block-wrapper">
+                    <pre><code>set -g PROMPT_COLOR_MODE on
+set -g PROMPT_EXIT_CODE on
+set -g PROMPT_CMD_TIME off
+set -g PROMPT_USER_HOST off</code></pre>
+                    <button class="copy-hover-btn" onclick="copyHoverCode(this)">Copy</button>
+                </div>
             </div>
 
             <h3>CLI Commands</h3>
@@ -809,6 +848,13 @@
     <script>
         function copyCmd(btn) {
             const code = btn.previousElementSibling.textContent;
+            navigator.clipboard.writeText(code);
+            btn.textContent = 'Copied!';
+            setTimeout(() => btn.textContent = 'Copy', 2000);
+        }
+
+        function copyHoverCode(btn) {
+            const code = btn.parentElement.querySelector('code').textContent;
             navigator.clipboard.writeText(code);
             btn.textContent = 'Copied!';
             setTimeout(() => btn.textContent = 'Copy', 2000);
