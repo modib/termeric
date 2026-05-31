@@ -145,23 +145,25 @@
         .terminal-dot.green { background: var(--green); }
 
         .terminal-body {
-            padding: 24px;
+            padding: 20px 24px;
             font-family: 'MesloLGS Nerd Font', 'SF Mono', 'Fira Code', monospace;
             font-size: 14px;
-            line-height: 1.8;
+            line-height: 1.6;
+            background: #0D1117;
         }
 
         .prompt-powerline {
             display: flex;
             align-items: center;
-            margin-bottom: 8px;
+            margin-bottom: 4px;
         }
 
         .segment {
-            padding: 4px 12px;
+            padding: 6px 16px;
             display: inline-flex;
             align-items: center;
             gap: 6px;
+            font-family: 'MesloLGS Nerd Font', 'SF Mono', 'Fira Code', monospace;
         }
 
         .segment-ok { background: #00D200; color: #000; }
@@ -174,19 +176,32 @@
         .arrow {
             width: 0;
             height: 0;
-            border-top: 12px solid transparent;
-            border-bottom: 12px solid transparent;
+            border-top: 14px solid transparent;
+            border-bottom: 14px solid transparent;
         }
 
-        .arrow-ok { border-left: 12px solid #00D200; }
-        .arrow-user { border-left: 12px solid #3264DC; }
-        .arrow-path { border-left: 12px solid #00BEBE; }
-        .arrow-git { border-left: 12px solid var(--gold); }
-        .arrow-time { border-left: 12px solid #C832C8; }
-        .arrow-prompt { border-left: 12px solid #000; }
+        .arrow-ok { border-left: 14px solid #00D200; }
+        .arrow-user { border-left: 14px solid #3264DC; }
+        .arrow-path { border-left: 14px solid #00BEBE; }
+        .arrow-git { border-left: 14px solid var(--gold); }
+        .arrow-time { border-left: 14px solid #C832C8; }
+        .arrow-prompt { border-left: 14px solid #000; }
 
         .prompt-symbol {
             color: var(--text-muted);
+        }
+
+        .cursor {
+            display: inline-block;
+            width: 8px;
+            height: 16px;
+            background: #FFF;
+            animation: blink 1s step-end infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
         }
 
         /* Features */
@@ -413,9 +428,9 @@
                         <span class="arrow arrow-time"></span>
                     </div>
                     <div class="prompt-powerline">
-                        <span class="segment segment-prompt">$</span>
+                        <span class="segment segment-prompt">%</span>
                         <span class="arrow arrow-prompt"></span>
-                        <span class="prompt-symbol">&nbsp;</span>
+                        <span class="cursor">&nbsp;</span>
                     </div>
                 </div>
             </div>
