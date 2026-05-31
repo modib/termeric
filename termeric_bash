@@ -205,9 +205,9 @@ __termeric_ps1() {
             # Trailing separator
             [ -n "$arrow" ] && data+="${arrow}${PSEP}${R}"
 
-            # Line 2: leading black triangle + prompt char + trailing green arrow
+            # Line 2: prompt char + trailing green arrow
             if [ -n "$arrow" ]; then
-                prompt_sep="${ARROW_BLACK}${PSEP}${R}${BG_PRM}${B}${TXT_BG_LIT} \$ ${R}${ARROW_OK}${PSEP}${R}"
+                prompt_sep="${BG_PRM}${B}${TXT_BG_LIT} \$ ${R}${ARROW_OK}${PSEP}${R}"
             else
                 prompt_sep="\$ "
             fi

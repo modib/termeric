@@ -227,7 +227,7 @@ function fish_prompt
 
             # Line 2
             if test -n "$arrow"
-                printf '%b' "$BG_PRM$TXT_BG_LIT %# $R$ARROW_BLACK$PSEP$R"
+                printf '%b' "$BG_PRM$TXT_BG_LIT %# $R$ARROW_OK$PSEP$R"
             else
                 printf '%s' '$ '
             end

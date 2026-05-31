@@ -208,9 +208,9 @@ __termeric_prompt() {
             # Trailing separator
             [[ -n "$arrow" ]] && data+="${arrow}${psep}${R}"
 
-            # Line 2: leading black triangle + prompt char + trailing green arrow
+            # Line 2: prompt char + trailing green arrow
             if [ -n "$arrow" ]; then
-                PROMPT="${data}"$'\n'"${ARROW_BLACK}${psep}${R}${BG_PRM}${TXT_BG_LIT} %# ${R}${ARROW_OK}${psep}${R}"
+                PROMPT="${data}"$'\n'"${BG_PRM}${TXT_BG_LIT} %# ${R}${ARROW_OK}${psep}${R}"
             else
                 PROMPT="${data}"$'\n'"%# "
             fi
