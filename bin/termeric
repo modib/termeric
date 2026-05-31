@@ -203,7 +203,7 @@ _cmd_install() {
 
 	# Source the rc file for immediate effect
 	case "$shell_name" in
-	zsh|bash)
+	zsh | bash)
 		_info "Run ${BOLD}source ~${HOME#/}$([ "$shell_name" = zsh ] && echo ".zshrc" || echo ".bashrc")${RESET} or open a new terminal."
 		;;
 	*)
