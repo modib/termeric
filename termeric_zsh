@@ -62,6 +62,7 @@ preexec_functions+=(__tmerm_cmd_start)
 
 # ── Git info via cache (avoids fork when unchanged) ────────────
 __tmerm_git_info() {
+    setopt localoptions noxtrace 2>/dev/null
     # Fast exit: not in a git repo
     git rev-parse --is-inside-work-tree &>/dev/null || return
 
@@ -131,6 +132,7 @@ __tmerm_git_info() {
 
 # ── Prompt builder ──────────────────────────────────────────────
 __termeric_prompt() {
+    setopt localoptions noxtrace 2>/dev/null
     local rc=$?
     local data=""
     local arrow=""

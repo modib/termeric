@@ -57,6 +57,8 @@ fi
 
 # ── Git info via cache (avoids fork when unchanged) ────────────
 __tmerm_git_info() {
+    local __tmerm_xtrace=
+    [[ -o xtrace ]] && __tmerm_xtrace=1 && set +x
     # Fast exit: not in a git repo
     git rev-parse --is-inside-work-tree &>/dev/null || return
 
@@ -124,10 +126,13 @@ __tmerm_git_info() {
     cur_index=$(stat -f '%m' "$index_file" 2>/dev/null || stat -c '%Y' "$index_file" 2>/dev/null)
     printf '%s %s\n' "$cur_head" "$cur_index" > "$cache_file"
     printf '%s' "$out" > "$git_dir/.termeric_result"
+    [[ -n "$__tmerm_xtrace" ]] && set -x
 }
 
 # ── Prompt builder ──────────────────────────────────────────────
 __termeric_ps1() {
+    local __tmerm_xtrace=
+    [[ -o xtrace ]] && __tmerm_xtrace=1 && set +x
     local rc=$?
     local data=""
     local arrow=""
@@ -244,6 +249,7 @@ __termeric_ps1() {
     PS1="${data}"$'\n'"${prompt_sep}"
 
     __tmerm_timer=$SECONDS
+    [[ -n "$__tmerm_xtrace" ]] && set -x
     return "$rc"
 }
 
