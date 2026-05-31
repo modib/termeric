@@ -4,7 +4,7 @@ set -euo pipefail
 DOTFILES_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 # ── Version ─────────────────────────────────────────────────────
-TIRMERIC_VERSION="${TIRMERIC_VERSION:-1.0.0}"
+TERMERIC_VERSION="${TERMERIC_VERSION:-1.0.0}"
 
 # ── Colors ──────────────────────────────────────────────────────
 if [ -t 1 ]; then
@@ -90,88 +90,6 @@ nerd_font_installed() {
 	if ls ~/.fonts/ 2>/dev/null | grep -qi "meslo.*nerd\|nerd.*meslo"; then return 0; fi
 	if command -v fc-list &>/dev/null && fc-list 2>/dev/null | grep -qi "meslo.*nerd\|nerd.*meslo"; then return 0; fi
 	return 1
-}
-
-_install_bundled_font() {
-	local target_dir="$1"
-	local bundled_dir="$DOTFILES_DIR/fonts"
-
-	if [ ! -d "$bundled_dir" ]; then
-		_err "Bundled fonts directory not found: $bundled_dir"
-		return 1
-	fi
-
-	mkdir -p "$target_dir"
-	cp "$bundled_dir"/*.ttf "$target_dir/"
-	_ok "Copied bundled MesloLGS Nerd Font to $target_dir"
-}
-
-_download_font() {
-	local target_dir="$1"
-	local url="https://github.com/ryanoasis/nerd-fonts/releases/download/v3.4.0/Meslo.zip"
-
-	if ! command -v unzip &>/dev/null; then
-		_err "'unzip' is required. Install it first."
-		return 1
-	fi
-
-	local downloader
-	if command -v curl &>/dev/null; then
-		downloader="curl -fsSL"
-	elif command -v wget &>/dev/null; then
-		downloader="wget -qO"
-	else
-		_err "Neither curl nor wget found."
-		return 1
-	fi
-
-	local tmpdir
-	tmpdir="$(mktemp -d)"
-	(
-		cd "$tmpdir" || exit 1
-		_info "Downloading Meslo Nerd Font..."
-		$downloader "$url" -o Meslo.zip || {
-			_err "Download failed."
-			exit 1
-		}
-		unzip -q Meslo.zip -d meslo-nerd || {
-			_err "Extraction failed."
-			exit 1
-		}
-		mkdir -p "$target_dir"
-		cp meslo-nerd/*.ttf "$target_dir/"
-	)
-	local status=$?
-	rm -rf "$tmpdir"
-	return $status
-}
-
-install_font() {
-	if nerd_font_installed; then
-		_ok "Meslo Nerd Font already installed."
-		return 0
-	fi
-
-	_info "Installing Meslo Nerd Font..."
-
-	if [ "$(uname)" = "Darwin" ]; then
-		if command -v brew &>/dev/null; then
-			brew install --cask font-meslo-lg-nerd-font
-		else
-			_install_bundled_font "$HOME/Library/Fonts"
-		fi
-	elif command -v apt &>/dev/null; then
-		sudo apt install -y fonts-meslo-lg-nerd-font 2>/dev/null || _install_bundled_font "$HOME/.local/share/fonts" && fc-cache -f
-	elif command -v dnf &>/dev/null; then
-		sudo dnf install -y meslo-lg-nerd-fonts 2>/dev/null || _install_bundled_font "$HOME/.local/share/fonts" && fc-cache -f
-	elif command -v pacman &>/dev/null; then
-		if command -v yay &>/dev/null; then yay -S --noconfirm nerd-fonts-meslo 2>/dev/null && return 0; fi
-		_install_bundled_font "$HOME/.local/share/fonts" && fc-cache -f
-	else
-		_install_bundled_font "$HOME/.local/share/fonts" && fc-cache -f
-	fi
-
-	_info "Set your terminal to use 'MesloLGS Nerd Font'."
 }
 
 _download_font() {

@@ -1,8 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-TIRMERIC_VERSION="1.0.0"
-TIRMERIC_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+TERMERIC_VERSION="1.0.0"
+TERMERIC_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+
+# Detect share directory (Homebrew pkgshare puts files under share/termeric/)
+TERMERIC_SHARE="$TERMERIC_DIR"
+if [ ! -f "$TERMERIC_SHARE/termeric_bash" ] && [ -d "$TERMERIC_DIR/share/termeric" ]; then
+	TERMERIC_SHARE="$TERMERIC_DIR/share/termeric"
+fi
 
 # ── Colors ──────────────────────────────────────────────────────
 if [ -t 1 ]; then
@@ -86,8 +92,8 @@ _cmd_install() {
 	_info "Detected shell: ${BOLD}$shell_name${RESET}"
 
 	# Install bash config
-	if [ -f "$TIRMERIC_DIR/termeric_bash" ]; then
-		cp "$TIRMERIC_DIR/termeric_bash" "$HOME/.termeric_bash"
+	if [ -f "$TERMERIC_SHARE/termeric_bash" ]; then
+		cp "$TERMERIC_SHARE/termeric_bash" "$HOME/.termeric_bash"
 		_ok "Copied termeric_bash to ~/.termeric_bash"
 
 		if ! grep -qxF '[ -f ~/.termeric_bash ] && . ~/.termeric_bash' "$HOME/.bashrc" 2>/dev/null; then
@@ -105,8 +111,8 @@ _cmd_install() {
 	fi
 
 	# Install zsh config
-	if [ -f "$TIRMERIC_DIR/termeric_zsh" ]; then
-		cp "$TIRMERIC_DIR/termeric_zsh" "$HOME/.termeric_zsh"
+	if [ -f "$TERMERIC_SHARE/termeric_zsh" ]; then
+		cp "$TERMERIC_SHARE/termeric_zsh" "$HOME/.termeric_zsh"
 		_ok "Copied termeric_zsh to ~/.termeric_zsh"
 
 		# Check for existing termeric source lines (prevent duplication)
@@ -162,10 +168,10 @@ _cmd_install() {
 	fi
 
 	# Install fish config
-	if [ -f "$TIRMERIC_DIR/termeric_fish" ]; then
+	if [ -f "$TERMERIC_SHARE/termeric_fish" ]; then
 		local fish_config_dir="$HOME/.config/fish"
 		mkdir -p "$fish_config_dir"
-		cp "$TIRMERIC_DIR/termeric_fish" "$fish_config_dir/termeric_fish"
+		cp "$TERMERIC_SHARE/termeric_fish" "$fish_config_dir/termeric_fish"
 		_ok "Copied termeric_fish to ~/.config/fish/termeric_fish"
 
 		local fish_config="$fish_config_dir/config.fish"
@@ -182,9 +188,9 @@ _cmd_install() {
 	fi
 
 	# Install CLI to PATH if not already there
-	if [ ! -x "$HOME/.local/bin/termeric" ] && [ "$TIRMERIC_DIR/bin/termeric" != "$(which termeric 2>/dev/null || echo none)" ]; then
+	if [ ! -x "$HOME/.local/bin/termeric" ] && [ "$TERMERIC_DIR/bin/termeric" != "$(which termeric 2>/dev/null || echo none)" ]; then
 		mkdir -p "$HOME/.local/bin"
-		ln -sf "$TIRMERIC_DIR/bin/termeric" "$HOME/.local/bin/termeric"
+		ln -sf "$TERMERIC_DIR/bin/termeric" "$HOME/.local/bin/termeric"
 		_ok "Symlinked termeric to ~/.local/bin/"
 
 		case ":$PATH:" in
@@ -204,7 +210,7 @@ _cmd_install() {
 	# Source the rc file for immediate effect
 	case "$shell_name" in
 	zsh | bash)
-		_info "Run ${BOLD}source ~${HOME#/}$([ "$shell_name" = zsh ] && echo ".zshrc" || echo ".bashrc")${RESET} or open a new terminal."
+		_info "Run ${BOLD}source ~/.${shell_name}rc${RESET} or open a new terminal."
 		;;
 	*)
 		_info "Run ${BOLD}exec $shell_name${RESET} or open a new terminal."
@@ -244,8 +250,8 @@ _cmd_uninstall() {
 # ── Update ──────────────────────────────────────────────────────
 _cmd_update() {
 	_info "Updating termeric..."
-	if [ -d "$TIRMERIC_DIR/.git" ]; then
-		git -C "$TIRMERIC_DIR" pull --rebase --quiet
+	if [ -d "$TERMERIC_DIR/.git" ]; then
+		git -C "$TERMERIC_DIR" pull --rebase --quiet
 		_cmd_install
 		_ok "Updated to latest version"
 	else
@@ -256,7 +262,7 @@ _cmd_update() {
 
 # ── Config ──────────────────────────────────────────────────────
 _cmd_config() {
-	local config_file="${TIRMERIC_CONFIG:-$HOME/.termericrc}"
+	local config_file="${TERMERIC_CONFIG:-$HOME/.termericrc}"
 	if [ ! -f "$config_file" ]; then
 		cat >"$config_file" <<'CONF'
 # termeric configuration
@@ -274,7 +280,7 @@ CONF
 # ── Status ──────────────────────────────────────────────────────
 _cmd_status() {
 	echo ""
-	printf "%b%b%b" "${GOLD}${BOLD}" "termeric v${TIRMERIC_VERSION}" "${RESET}\n"
+	printf "%b%b%b" "${GOLD}${BOLD}" "termeric v${TERMERIC_VERSION}" "${RESET}\n"
 	echo "─────────────────────────────────────"
 
 	# Shell
@@ -340,7 +346,7 @@ _cmd_font() {
 	fi
 
 	# Use bundled fonts if available
-	local bundled_dir="$TIRMERIC_DIR/fonts"
+	local bundled_dir="$TERMERIC_DIR/fonts"
 	if [ -d "$bundled_dir" ] && [ -n "$(ls -A "$bundled_dir"/*.ttf 2>/dev/null)" ]; then
 		if [ "$(uname)" = "Darwin" ]; then
 			mkdir -p ~/Library/Fonts
@@ -466,7 +472,7 @@ _cmd_doctor() {
 
 # ── Version ─────────────────────────────────────────────────────
 _cmd_version() {
-	echo "termeric $TIRMERIC_VERSION"
+	echo "termeric $TERMERIC_VERSION"
 }
 
 # ── Main ────────────────────────────────────────────────────────
