@@ -112,7 +112,43 @@ _cmd_install() {
 		cp "$TIRMERIC_DIR/termeric_zsh" "$HOME/.termeric_zsh"
 		_ok "Copied termeric_zsh to ~/.termeric_zsh"
 
-		if ! grep -qxF '[ -f ~/.termeric_zsh ] && . ~/.termeric_zsh' "$HOME/.zshrc" 2>/dev/null; then
+		# Check for existing termeric source lines (prevent duplication)
+		local existing_count=0
+		if [ -f "$HOME/.zshrc" ]; then
+			existing_count=$(grep -c "termeric" "$HOME/.zshrc" 2>/dev/null || echo 0)
+		fi
+
+		if [ "$existing_count" -eq 0 ]; then
+			# Check for conflicting prompt customizations
+			local conflicts=""
+			if [ -f "$HOME/.zshrc" ]; then
+				if grep -q "oh-my-zsh\|oh-my-zsh.sh" "$HOME/.zshrc" 2>/dev/null; then
+					conflicts="${conflicts}  - oh-my-zsh detected\n"
+				fi
+				if grep -q "powerlevel10k\|p10k" "$HOME/.zshrc" 2>/dev/null; then
+					conflicts="${conflicts}  - powerlevel10k detected\n"
+				fi
+				if grep -q "starship" "$HOME/.zshrc" 2>/dev/null; then
+					conflicts="${conflicts}  - starship detected\n"
+				fi
+				if grep -q "pure\|sindresorhus/pure" "$HOME/.zshrc" 2>/dev/null; then
+					conflicts="${conflicts}  - pure prompt detected\n"
+				fi
+				if grep -q "agnoster" "$HOME/.zshrc" 2>/dev/null; then
+					conflicts="${conflicts}  - agnoster theme detected\n"
+				fi
+				# Check for generic PROMPT manipulation
+				if grep -qE "^(PROMPT=|setopt.*PROMPT|prompt_)" "$HOME/.zshrc" 2>/dev/null; then
+					conflicts="${conflicts}  - custom PROMPT setting detected\n"
+				fi
+			fi
+
+			if [ -n "$conflicts" ]; then
+				_warn "Conflicting prompt customizations found in ~/.zshrc:"
+				printf "$conflicts"
+				_info "Termeric will be added, but you may need to comment out conflicting lines."
+			fi
+
 			{
 				echo ""
 				echo "# termeric — golden prompt"
@@ -122,7 +158,7 @@ _cmd_install() {
 			} >>"$HOME/.zshrc"
 			_ok "Added source line to ~/.zshrc"
 		else
-			_info "~/.zshrc already sources termeric_zsh"
+			_info "~/.zshrc already sources termeric (${existing_count} references found)"
 		fi
 	fi
 
