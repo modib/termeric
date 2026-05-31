@@ -39,7 +39,7 @@ All features controlled via `on`/`off` values. Backward compat: `1`/`0` also acc
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
-| `GIT_COLORS` | `on` | Powerline-style background segments |
+| `PROMPT_COLOR_MODE` | `on` | Powerline mode (`on`) or colored text only (`off`) |
 | `PROMPT_EXIT_CODE` | `on` | Show ✓/✗ exit code indicator |
 | `PROMPT_CMD_TIME` | `off` | Show command duration when ≥2s |
 
@@ -62,7 +62,7 @@ All features controlled via `on`/`off` values. Backward compat: `1`/`0` also acc
 - Run `bash -n bin/termeric` for CLI syntax check
 - Run `./bin/termeric doctor` to verify system readiness
 - Source the file in a new shell and verify the prompt renders
-- Verify both powerline mode (`GIT_COLORS=on`) and normal mode
+- Verify both powerline mode (`PROMPT_COLOR_MODE=on`) and colored text mode (`PROMPT_COLOR_MODE=off`)
 
 ### Versioning
 - Update `VERSION` file before release

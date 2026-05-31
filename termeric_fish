@@ -2,12 +2,12 @@
 # Source: source ~/.termeric_fish
 #
 # Configuration (set before sourcing):
-#   set -g GIT_COLORS on       Powerline segments (default: on)
-#   set -g PROMPT_EXIT_CODE on Exit indicator (default: on)
-#   set -g PROMPT_CMD_TIME on  Command duration >=2s (default: off)
+#   set -g PROMPT_COLOR_MODE on   Powerline mode: on (default) or off (colored text only)
+#   set -g PROMPT_EXIT_CODE on   Exit indicator (default: on)
+#   set -g PROMPT_CMD_TIME on    Command duration >=2s (default: off)
 
 # ── Defaults ────────────────────────────────────────────────────
-set -q GIT_COLORS; or set -g GIT_COLORS on
+set -q PROMPT_COLOR_MODE; or set -g PROMPT_COLOR_MODE on
 set -q PROMPT_EXIT_CODE; or set -g PROMPT_EXIT_CODE on
 set -q PROMPT_CMD_TIME; or set -g PROMPT_CMD_TIME off
 
@@ -64,6 +64,8 @@ if test "$_tmerm_color" = yes
 
     # Powerline separator
     set -g PSEP 
+    set -g PSEP_LEFT 
+
 end
 
 # ── Command duration tracking ──────────────────────────────────
@@ -171,16 +173,16 @@ function fish_prompt
     end
 
     if test "$_tmerm_color" = yes
-        if test "$GIT_COLORS" != off
+        if test "$PROMPT_COLOR_MODE" != off
             # ── POWERLINE MODE ──
 
             # Exit code
             if test "$PROMPT_EXIT_CODE" != off
                 if test $rc -eq 0
-                    set data "$data$BG_OK$TXT_BG_LIT ✓ $R"
+                    set data "$data$BG_OK$ARROW_OK$PSEP_LEFT$TXT_BG_LIT ✓ $R"
                     set arrow "$ARROW_OK"
                 else
-                    set data "$data$BG_FAIL$TXT_BG ✗ $rc $R"
+                    set data "$data$BG_FAIL$ARROW_FAIL$PSEP_LEFT$TXT_BG ✗ $rc $R"
                     set arrow "$ARROW_FAIL"
                 end
             end
@@ -225,9 +227,9 @@ function fish_prompt
             # Output line 1
             printf '%b' "$data"
 
-            # Line 2
+            # Line 2: leading arrow + prompt char + trailing arrow
             if test -n "$arrow"
-                printf '%b' "$BG_PRM$TXT_BG_LIT %# $R$ARROW_OK$PSEP$R"
+                printf '%b' "$BG_OK$ARROW_OK$PSEP_LEFT$BG_PRM$TXT_BG_LIT %# $R$ARROW_OK$PSEP$R"
             else
                 printf '%s' '$ '
             end

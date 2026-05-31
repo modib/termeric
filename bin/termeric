@@ -49,10 +49,9 @@ _show_help() {
 		"${BOLD}Configuration:${RESET}" \
 		"  Set these before sourcing termeric:" \
 		"" \
-		"    GIT_COLORS=on         Powerline segments (default: on)" \
+		"    PROMPT_COLOR_MODE=on   Powerline mode: on (default) or off (colored text only)" \
 		"    PROMPT_EXIT_CODE=on   Show exit indicator (default: on)" \
-		"    PROMPT_CMD_TIME=on    Show command duration (default: off)" \
-		"    PROMPT_COLOR_MODE=256 Color mode: 256color or xterm (default: 256color)" \
+		"    PROMPT_CMD_TIME=off   Show command duration (default: off)" \
 		"    PROMPT_USER_HOST=off   Show user@host segment (default: off)" \
 		"" \
 		"${BOLD}Docs:${RESET}" \
@@ -204,21 +203,8 @@ _cmd_install() {
 
 	# Source the rc file for immediate effect
 	case "$shell_name" in
-	zsh)
-		if [ -f "$HOME/.zshrc" ]; then
-			_info "Sourcing ~/.zshrc..."
-			# shellcheck disable=SC1090
-			. "$HOME/.zshrc" 2>/dev/null || true
-			_ok "Prompt active in current session"
-		fi
-		;;
-	bash)
-		if [ -f "$HOME/.bashrc" ]; then
-			_info "Sourcing ~/.bashrc..."
-			# shellcheck disable=SC1090
-			. "$HOME/.bashrc" 2>/dev/null || true
-			_ok "Prompt active in current session"
-		fi
+	zsh|bash)
+		_info "Run ${BOLD}source ~${HOME#/}$([ "$shell_name" = zsh ] && echo ".zshrc" || echo ".bashrc")${RESET} or open a new terminal."
 		;;
 	*)
 		_info "Run ${BOLD}exec $shell_name${RESET} or open a new terminal."
@@ -276,9 +262,9 @@ _cmd_config() {
 # termeric configuration
 # Set these to override defaults
 
-# GIT_COLORS=on       # Powerline segments (on/off)
-# PROMPT_EXIT_CODE=on # Exit indicator (on/off)
-# PROMPT_CMD_TIME=off # Command duration (on/off)
+# PROMPT_COLOR_MODE=on   # Powerline mode (on/off)
+# PROMPT_EXIT_CODE=on   # Exit indicator (on/off)
+# PROMPT_CMD_TIME=off   # Command duration (on/off)
 CONF
 		_info "Created config at $config_file"
 	fi
@@ -324,10 +310,9 @@ _cmd_status() {
 	# Toggle states
 	echo ""
 	printf "%b%b%b" "${BOLD}" "Toggles" "${RESET}\n"
-	printf "  %-20s %s\n" "GIT_COLORS" "${GIT_COLORS:-on}"
+	printf "  %-20s %s\n" "PROMPT_COLOR_MODE" "${PROMPT_COLOR_MODE:-on}"
 	printf "  %-20s %s\n" "PROMPT_EXIT_CODE" "${PROMPT_EXIT_CODE:-on}"
 	printf "  %-20s %s\n" "PROMPT_CMD_TIME" "${PROMPT_CMD_TIME:-off}"
-	printf "  %-20s %s\n" "PROMPT_COLOR_MODE" "${PROMPT_COLOR_MODE:-256color}"
 	printf "  %-20s %s\n" "PROMPT_USER_HOST" "${PROMPT_USER_HOST:-off}"
 
 	# Git cache
@@ -455,10 +440,9 @@ _cmd_doctor() {
 	echo ""
 	printf "%b%b%b" "${BOLD}" "Toggle states" "${RESET}\n"
 	echo "─────────────────────────────────────"
-	printf "  %-22s %s\n" "GIT_COLORS=${GIT_COLORS:-on}" "($(if [ "${GIT_COLORS:-on}" = "off" ]; then echo "disabled"; else echo "enabled"; fi))"
+	printf "  %-22s %s\n" "PROMPT_COLOR_MODE=${PROMPT_COLOR_MODE:-on}" "($(if [ "${PROMPT_COLOR_MODE:-on}" = "off" ]; then echo "colored text"; else echo "powerline"; fi))"
 	printf "  %-22s %s\n" "PROMPT_EXIT_CODE=${PROMPT_EXIT_CODE:-on}" "($(if [ "${PROMPT_EXIT_CODE:-on}" = "off" ]; then echo "disabled"; else echo "enabled"; fi))"
 	printf "  %-22s %s\n" "PROMPT_CMD_TIME=${PROMPT_CMD_TIME:-off}" "($(if [ "${PROMPT_CMD_TIME:-off}" = "on" ]; then echo "enabled"; else echo "disabled"; fi))"
-	printf "  %-22s %s\n" "PROMPT_COLOR_MODE=${PROMPT_COLOR_MODE:-256color}" ""
 	printf "  %-22s %s\n" "PROMPT_USER_HOST=${PROMPT_USER_HOST:-off}" "($(if [ "${PROMPT_USER_HOST:-off}" = "on" ]; then echo "enabled"; else echo "disabled"; fi))"
 	echo ""
 

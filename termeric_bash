@@ -2,13 +2,10 @@
 # Source: [ -f ~/.termeric_bash ] && . ~/.termeric_bash
 #
 # Configuration (set before sourcing):
-#   GIT_COLORS=on         Powerline-style background segments  (default: on)
+#   PROMPT_COLOR_MODE=on   Powerline mode: on (default) or off (colored text only)
 #   PROMPT_EXIT_CODE=on   Show check/cross exit code indicator (default: on)
 #   PROMPT_CMD_TIME=on    Show command duration when >=2s       (default: off)
-#   PROMPT_COLOR_MODE=256 Color mode: 256color (default) or xterm
 #   PROMPT_USER_HOST=on   Show user@host segment                (default: on)
-#
-# Backward compat: GIT_COLORS=1, PROMPT_EXIT_CODE=0, etc.
 
 # ── Term detection (once) ──────────────────────────────────────
 case "$TERM" in
@@ -20,44 +17,31 @@ case "$TERM" in xterm*|rxvt*) _tmerm_has_title=yes;; esac
 
 # ── Color definitions (re-evaluated when mode changes) ──────────
 __tmerm_init_colors() {
-    local new_mode="${PROMPT_COLOR_MODE:-256color}"
+    local new_mode="${PROMPT_COLOR_MODE:-on}"
     [ "$new_mode" = "$_tmerm_color_mode" ] && return
     _tmerm_color_mode="$new_mode"
 
     E=$'\e'
     R="\[${E}[0m\]"   B="\[${E}[1m\]"
 
-    if [ "$_tmerm_color_mode" = "xterm" ]; then
-        BG_OK="\[${E}[42m\]";         ARROW_OK="\[${E}[32m\]"
-        BG_FAIL="\[${E}[41m\]";       ARROW_FAIL="\[${E}[31m\]"
-        BG_USER="\[${E}[44m\]";       ARROW_USER="\[${E}[34m\]"
-        BG_PATH="\[${E}[46m\]";       ARROW_PATH="\[${E}[36m\]"
-        BG_GIT="\[${E}[43m\]";        ARROW_GIT="\[${E}[33m\]"
-        BG_TIME="\[${E}[45m\]";       ARROW_TIME="\[${E}[35m\]"
-        BG_PRM="\[${E}[42m\]";        ARROW_PRM="\[${E}[32m\]"
-        ARROW_BLACK="\[${E}[30m\]"
-        TXT_BG_DARK="\[${E}[97m\]"
-        TXT_BG_LIT="\[${E}[30m\]"
-    else
-        BG_OK="\[${E}[48;2;0;210;0m\]";     ARROW_OK="\[${E}[38;2;0;210;0m\]"
-        BG_FAIL="\[${E}[48;2;220;50;50m\]"; ARROW_FAIL="\[${E}[38;2;220;50;50m\]"
-        BG_USER="\[${E}[48;2;50;100;220m\]";ARROW_USER="\[${E}[38;2;50;100;220m\]"
-        BG_PATH="\[${E}[48;2;0;190;190m\]"; ARROW_PATH="\[${E}[38;2;0;190;190m\]"
-        BG_GIT="\[${E}[48;2;220;180;0m\]";  ARROW_GIT="\[${E}[38;2;220;180;0m\]"
-        BG_TIME="\[${E}[48;2;200;50;200m\]";ARROW_TIME="\[${E}[38;2;200;50;200m\]"
-        BG_PRM="\[${E}[48;2;0;210;0m\]";    ARROW_PRM="\[${E}[38;2;0;210;0m\]"
-        ARROW_BLACK="\[${E}[38;2;0;0;0m\]"
-        TXT_BG_DARK="\[${E}[38;2;255;255;255m\]"
-        TXT_BG_LIT="\[${E}[38;2;0;0;0m\]"
-    fi
+    BG_OK="\[${E}[48;2;0;210;0m\]";     ARROW_OK="\[${E}[38;2;0;210;0m\]"
+    BG_FAIL="\[${E}[48;2;220;50;50m\]"; ARROW_FAIL="\[${E}[38;2;220;50;50m\]"
+    BG_USER="\[${E}[48;2;50;100;220m\]";ARROW_USER="\[${E}[38;2;50;100;220m\]"
+    BG_PATH="\[${E}[48;2;0;190;190m\]"; ARROW_PATH="\[${E}[38;2;0;190;190m\]"
+    BG_GIT="\[${E}[48;2;220;180;0m\]";  ARROW_GIT="\[${E}[38;2;220;180;0m\]"
+    BG_TIME="\[${E}[48;2;200;50;200m\]";ARROW_TIME="\[${E}[38;2;200;50;200m\]"
+    BG_PRM="\[${E}[48;2;0;210;0m\]";   ARROW_PRM="\[${E}[38;2;0;210;0m\]"
+    TXT_BG_DARK="\[${E}[97m\]"
+    TXT_BG_LIT="\[${E}[30m\]"
 
     TXT_OK="\[${E}[32m\]"
     TXT_FAIL="\[${E}[1;31m\]"
-    TXT_USER="\[${E}[92m\]"
+    TXT_USER="\[${E}[32m\]"
     TXT_PATH="\[${E}[94m\]"
     TXT_GIT="\[${E}[33m\]"
     TXT_TIME="\[${E}[96m\]"
     PSEP=
+    PSEP_LEFT=
 }
 
 if [ "$_tmerm_color" = yes ]; then
@@ -153,16 +137,17 @@ __termeric_ps1() {
 
     if [ "$_tmerm_color" = yes ]; then
         __tmerm_init_colors
-        if [ "${GIT_COLORS-${_tmerm_default_colors:-on}}" != "off" ]; then
+        if [ "${PROMPT_COLOR_MODE:-on}" != "off" ]; then
             # ── POWERLINE MODE ──
+            local psep_left=$PSEP_LEFT
 
             # Exit code
             if [ "${PROMPT_EXIT_CODE-${_tmerm_default_exit:-on}}" != "off" ]; then
                 if [ "$rc" -eq 0 ]; then
-                    data+="${BG_OK}${B}${TXT_BG_LIT} ✓ ${R}"
+                    data+="${BG_OK}${ARROW_OK}${psep_left}${B}${TXT_BG_LIT} ✓ ${R}"
                     arrow="${ARROW_OK}"
                 else
-                    data+="${BG_FAIL}${B}${TXT_BG_DARK} ✗ $rc ${R}"
+                    data+="${BG_FAIL}${ARROW_FAIL}${psep_left}${B}${TXT_BG_DARK} ✗ $rc ${R}"
                     arrow="${ARROW_FAIL}"
                 fi
             fi
@@ -205,9 +190,9 @@ __termeric_ps1() {
             # Trailing separator
             [ -n "$arrow" ] && data+="${arrow}${PSEP}${R}"
 
-            # Line 2: prompt char + trailing green arrow
+            # Line 2: leading arrow + prompt char + trailing arrow
             if [ -n "$arrow" ]; then
-                prompt_sep="${BG_PRM}${B}${TXT_BG_LIT} \$ ${R}${ARROW_OK}${PSEP}${R}"
+                prompt_sep="${BG_OK}${ARROW_OK}${psep_left}${BG_PRM}${B}${TXT_BG_LIT} \$ ${R}${ARROW_OK}${PSEP}${R}"
             else
                 prompt_sep="\$ "
             fi

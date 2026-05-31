@@ -38,7 +38,7 @@ Options:
   --help           Show this message
 
 Environment variables:
-  GIT_COLORS=on       Powerline segments (default: on)
+  PROMPT_COLOR_MODE=on   Powerline mode: on (default) or off (colored text only)
   PROMPT_EXIT_CODE=on Exit indicator (default: on)
   PROMPT_CMD_TIME=on  Command duration (default: off)
 EOF

@@ -56,26 +56,24 @@ Set these in your shell config **before** sourcing termeric:
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `GIT_COLORS` | `on` | Powerline segments with background colors |
+| `PROMPT_COLOR_MODE` | `on` | Powerline mode (`on`) or colored text only (`off`) |
 | `PROMPT_EXIT_CODE` | `on` | Show ✓/✗ exit code indicator |
 | `PROMPT_CMD_TIME` | `off` | Show command duration when ≥2s |
-| `PROMPT_COLOR_MODE` | `256color` | Color mode: `256color` (truecolor) or `xterm` (16-color) |
 | `PROMPT_USER_HOST` | `on` | Show user@host segment |
 
 **bash/zsh** (in `~/.bashrc` or `~/.zshrc`):
 
 ```bash
-export GIT_COLORS=on
+export PROMPT_COLOR_MODE=on    # or off for colored text only
 export PROMPT_EXIT_CODE=on
 export PROMPT_CMD_TIME=on
-export PROMPT_COLOR_MODE=256color  # or xterm for basic terminals
 export PROMPT_USER_HOST=on
 ```
 
 **fish** (in `~/.config/fish/config.fish`):
 
 ```fish
-set -g GIT_COLORS on
+set -g PROMPT_COLOR_MODE on    # or off for colored text only
 set -g PROMPT_EXIT_CODE on
 set -g PROMPT_CMD_TIME on
 ```
@@ -102,7 +100,7 @@ termeric version       # Show version
 $
 ```
 
-**Normal mode** (`GIT_COLORS=off`):
+**Normal mode** (`PROMPT_COLOR_MODE=off`):
 
 ```
 ✓ user@host ~/project (main +2 ~1 ?3) [3s]

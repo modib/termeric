@@ -49,10 +49,9 @@ class Termeric < Formula
 
       Configuration (set before sourcing):
 
-        GIT_COLORS=on         Powerline segments (default: on)
+        PROMPT_COLOR_MODE=on   Powerline mode: on (default) or off (colored text only)
         PROMPT_EXIT_CODE=on   Exit indicator (default: on)
         PROMPT_CMD_TIME=on    Command duration (default: off)
-        PROMPT_COLOR_MODE=256 Color mode: 256color or xterm
         PROMPT_USER_HOST=on   Show user@host (default: on)
     EOS
   end
