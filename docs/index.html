@@ -400,6 +400,127 @@
             text-decoration: underline;
         }
 
+        /* Docs */
+        .docs {
+            margin: 80px 0;
+        }
+
+        .docs h2 {
+            text-align: center;
+            font-size: 36px;
+            margin-bottom: 48px;
+            color: var(--gold);
+        }
+
+        .docs h3 {
+            font-size: 24px;
+            margin: 40px 0 16px;
+            color: var(--text);
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 8px;
+        }
+
+        .docs-subtitle {
+            color: var(--text-muted);
+            margin-bottom: 24px;
+        }
+
+        .docs-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--bg-card);
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+            margin-bottom: 24px;
+        }
+
+        .docs-table th,
+        .docs-table td {
+            padding: 12px 20px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+            font-size: 14px;
+        }
+
+        .docs-table th {
+            background: var(--border);
+            color: var(--text);
+            font-weight: 600;
+        }
+
+        .docs-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .docs-table code {
+            color: var(--gold);
+            background: rgba(220, 180, 0, 0.1);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+
+        .docs-example {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 16px 20px;
+            margin-bottom: 16px;
+        }
+
+        .docs-example p {
+            color: var(--text-muted);
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .docs-example pre {
+            background: var(--bg);
+            border-radius: 6px;
+            padding: 12px 16px;
+            overflow-x: auto;
+        }
+
+        .docs-example code {
+            color: var(--gold);
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .docs-faq {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .faq-item {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 16px 20px;
+        }
+
+        .faq-q {
+            color: var(--text);
+            margin-bottom: 4px;
+        }
+
+        .faq-a {
+            color: var(--text-muted);
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .faq-a code {
+            color: var(--gold);
+            background: rgba(220, 180, 0, 0.1);
+            padding: 1px 4px;
+            border-radius: 3px;
+            font-size: 13px;
+        }
+
         /* Responsive */
         @media (max-width: 640px) {
             h1 { font-size: 36px; }
@@ -421,6 +542,9 @@
             <div class="hero-buttons">
                 <a href="#install" class="btn btn-primary">
                     Get Started
+                </a>
+                <a href="#docs" class="btn btn-secondary">
+                    Docs
                 </a>
                 <a href="https://github.com/modib/termeric" class="btn btn-secondary">
                     View on GitHub
@@ -488,6 +612,131 @@
                     <div class="feature-icon">🚀</div>
                     <h3>Easy Install</h3>
                     <p>One command setup via Homebrew, deb, rpm, AUR, or direct install.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Docs -->
+        <section class="docs" id="docs">
+            <h2>Documentation</h2>
+
+            <h3>Configuration</h3>
+            <p class="docs-subtitle">Set these env vars <strong>before</strong> sourcing termeric.</p>
+            <table class="docs-table">
+                <thead>
+                    <tr>
+                        <th>Variable</th>
+                        <th>Default</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>PROMPT_COLOR_MODE</code></td>
+                        <td><code>on</code></td>
+                        <td>Powerline mode with background segments and arrows (<code>on</code>), or colored text only (<code>off</code>)</td>
+                    </tr>
+                    <tr>
+                        <td><code>PROMPT_EXIT_CODE</code></td>
+                        <td><code>on</code></td>
+                        <td>Show ✓/✗ exit code indicator after every command</td>
+                    </tr>
+                    <tr>
+                        <td><code>PROMPT_CMD_TIME</code></td>
+                        <td><code>off</code></td>
+                        <td>Show command duration when it exceeds 2 seconds</td>
+                    </tr>
+                    <tr>
+                        <td><code>PROMPT_USER_HOST</code></td>
+                        <td><code>off</code></td>
+                        <td>Show user@host segment at the start of the prompt</td>
+                    </tr>
+                </tbody>
+            </table>
+            <div class="docs-example">
+                <p><strong>bash/zsh</strong> (in <code>~/.bashrc</code> or <code>~/.zshrc</code>):</p>
+                <pre><code>export PROMPT_COLOR_MODE=on
+        export PROMPT_EXIT_CODE=on
+        export PROMPT_CMD_TIME=off
+        export PROMPT_USER_HOST=off</code></pre>
+            </div>
+            <div class="docs-example">
+                <p><strong>fish</strong> (in <code>~/.config/fish/config.fish</code>):</p>
+                <pre><code>set -g PROMPT_COLOR_MODE on
+        set -g PROMPT_EXIT_CODE on
+        set -g PROMPT_CMD_TIME off
+        set -g PROMPT_USER_HOST off</code></pre>
+            </div>
+
+            <h3>CLI Commands</h3>
+            <table class="docs-table">
+                <thead>
+                    <tr>
+                        <th>Command</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>termeric install</code></td>
+                        <td>Install prompt files and add source lines to shell config</td>
+                    </tr>
+                    <tr>
+                        <td><code>termeric install --font</code></td>
+                        <td>Install along with Meslo Nerd Font</td>
+                    </tr>
+                    <tr>
+                        <td><code>termeric uninstall</code></td>
+                        <td>Remove prompt files and source lines</td>
+                    </tr>
+                    <tr>
+                        <td><code>termeric update</code></td>
+                        <td>Pull latest version from git and reinstall</td>
+                    </tr>
+                    <tr>
+                        <td><code>termeric config</code></td>
+                        <td>Open configuration in <code>$EDITOR</code></td>
+                    </tr>
+                    <tr>
+                        <td><code>termeric status</code></td>
+                        <td>Show installed state, toggles, and cache status</td>
+                    </tr>
+                    <tr>
+                        <td><code>termeric font</code></td>
+                        <td>Install Meslo Nerd Font (bundled or via Homebrew)</td>
+                    </tr>
+                    <tr>
+                        <td><code>termeric doctor</code></td>
+                        <td>Check system compatibility — shell, git, terminal, font</td>
+                    </tr>
+                    <tr>
+                        <td><code>termeric version</code></td>
+                        <td>Show installed version</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>Troubleshooting</h3>
+            <div class="docs-faq">
+                <div class="faq-item">
+                    <p class="faq-q"><strong>Prompt looks like raw escape codes</strong></p>
+                    <p class="faq-a">Make sure <code>PROMPT_COLOR_MODE=on</code> is set before sourcing termeric. Your terminal must support 256color or truecolor. Check with: <code>echo $TERM</code> — should end in <code>-256color</code> or <code>-truecolor</code>.</p>
+                </div>
+                <div class="faq-item">
+                    <p class="faq-q"><strong>Powerline arrows show as broken characters</strong></p>
+                    <p class="faq-a">Install a Nerd Font: <code>termeric font</code>, then set your terminal to use "MesloLGS Nerd Font". The arrow characters (U+E0B0 / U+E0B2) require a patched font.</p>
+                </div>
+                <div class="faq-item">
+                    <p class="faq-q"><strong>Prompt conflicts with oh-my-zsh / powerlevel10k</strong></p>
+                    <p class="faq-a">Termeric detects conflicting prompt customizations during install. Comment out the existing prompt setup in <code>~/.zshrc</code>, or run <code>termeric uninstall</code> to revert.</p>
+                </div>
+                <div class="faq-item">
+                    <p class="faq-q"><strong>Git status not showing</strong></p>
+                    <p class="faq-a">You need <code>git</code> installed and the directory must be a git repository. Run <code>termeric doctor</code> to verify. The git status cache lives in <code>.git/.termeric_cache</code>.</p>
+                </div>
+                <div class="faq-item">
+                    <p class="faq-q"><strong>Updates and upgrades</strong></p>
+                    <p class="faq-a">If installed via git: <code>termeric update</code>. If installed via Homebrew: <code>brew upgrade termeric</code>. If installed via install.sh: re-run the curl pipe or clone fresh.</p>
                 </div>
             </div>
         </section>

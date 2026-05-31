@@ -55,7 +55,7 @@ _show_help() {
 		"    PROMPT_USER_HOST=off   Show user@host segment (default: off)" \
 		"" \
 		"${BOLD}Docs:${RESET}" \
-		"  https://github.com/modib/termeric"
+		"  https://modib.github.io/termeric/"
 }
 
 # ── Detect shell ────────────────────────────────────────────────

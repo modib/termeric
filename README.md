@@ -133,6 +133,10 @@ Termeric is being built with AI-powered features:
 - **Error translation** — rewrite cryptic errors in plain English
 - **Natural language** — type descriptions, get commands
 
+## Documentation
+
+Full documentation is available on the [GitHub Pages site](https://modib.github.io/termeric/).
+
 ## License
 
 MIT

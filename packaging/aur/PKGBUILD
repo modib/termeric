@@ -4,11 +4,11 @@ pkgver=1.0.0
 pkgrel=1
 pkgdesc='Golden prompts for your terminal — AI-powered shell prompt for bash, zsh, and fish'
 arch=('x86_64' 'aarch64' 'any')
-url='https://github.com/modib/termeric'
+url='https://modib.github.io/termeric/'
 license=('MIT')
 depends=('bash' 'zsh' 'git')
 makedepends=('git')
-source=("$url/archive/v$pkgver.tar.gz")
+source=("https://github.com/modib/termeric/archive/v$pkgver.tar.gz")
 sha256sums=('SKIP')
 backup=()
 

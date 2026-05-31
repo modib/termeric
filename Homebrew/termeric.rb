@@ -1,6 +1,6 @@
 class Termeric < Formula
   desc "Golden prompts for your terminal"
-  homepage "https://github.com/modib/termeric"
+  homepage "https://modib.github.io/termeric/"
   url "https://github.com/modib/termeric/archive/refs/tags/v1.0.0.tar.gz"
   sha256 "PLACEHOLDER_SHA256"
   license "MIT"

@@ -228,7 +228,7 @@ jobs:
           Architecture: all
           Depends: bash, zsh, git
           Maintainer: modib <noreply@github.com>
-          Homepage: https://github.com/modib/termeric
+           Homepage: https://modib.github.io/termeric/
           Description: Golden prompts for your terminal
            AI-powered, modernized shell prompt for bash and zsh.
           EOF

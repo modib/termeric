@@ -3,7 +3,7 @@ Version:        1.0.0
 Release:        1%{?dist}
 Summary:        Golden prompts for your terminal
 License:        MIT
-URL:            https://github.com/modib/termeric
+URL:            https://modib.github.io/termeric/
 Source0:        %{name}-%{version}.tar.gz
 
 BuildArch:      noarch

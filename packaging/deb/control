@@ -6,7 +6,7 @@ Architecture: all
 Depends: bash, zsh, git
 Recommends: fish
 Maintainer: modib <noreply@github.com>
-Homepage: https://github.com/modib/termeric
+Homepage: https://modib.github.io/termeric/
 Description: Golden prompts for your terminal
  AI-powered, modernized shell prompt for bash, zsh, and fish with
  powerline segments, git status caching, and command timing.

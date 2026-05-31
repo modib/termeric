@@ -19,13 +19,20 @@ jobs:
         run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
 
       - name: Run tests
-        run: make test
+        run: |
+          bash -n termeric_bash
+          bash -n bin/termeric
+          zsh -n termeric_zsh
+          fish -n termeric_fish
+          ./bin/termeric version
+          ./bin/termeric help
+          ./bin/termeric doctor
 
       - name: Build release tarball
         run: |
           tar czf termeric-${{ steps.version.outputs.version }}.tar.gz \
             --transform='s,^,termeric-${{ steps.version.outputs.version }}/,' \
-            termeric_bash termeric_zsh bin/ completions/ Homebrew/ packaging/ LICENSE README.md VERSION
+            termeric_bash termeric_zsh termeric_fish bin/ completions/ Homebrew/ packaging/ LICENSE README.md VERSION
 
       - name: Build deb package
         run: |
@@ -48,7 +55,7 @@ jobs:
           Architecture: all
           Depends: bash, zsh, git
           Maintainer: modib <noreply@github.com>
-          Homepage: https://github.com/modib/termeric
+          Homepage: https://modib.github.io/termeric/
           Description: Golden prompts for your terminal
            AI-powered, modernized shell prompt for bash and zsh.
           EOF
@@ -63,29 +70,32 @@ jobs:
 
             Golden prompts for your terminal.
 
-            ### Install
+              ### Install
 
-            **macOS (Homebrew):**
-            ```bash
-            brew tap modib/termeric
-            brew install termeric
-            ```
+             **macOS (Homebrew):**
+             ```bash
+             brew tap modib/termeric
+             brew install termeric
+             ```
 
-            **Linux (deb):**
-            ```bash
-            dpkg -i termeric_${{ steps.version.outputs.version }}_all.deb
-            ```
+             **Linux (deb):**
+             ```bash
+             dpkg -i termeric_${{ steps.version.outputs.version }}_all.deb
+             ```
 
-            **Any platform:**
-            ```bash
-            curl -fsSL https://raw.githubusercontent.com/modib/termeric/main/install.sh | bash
-            ```
+             **Any platform:**
+             ```bash
+             curl -fsSL https://raw.githubusercontent.com/modib/termeric/main/install.sh | bash
+             ```
 
-            ### Quick Start
-            ```bash
-            termeric install
-            exec bash  # or exec zsh
-            ```
+             ### Quick Start
+             ```bash
+             termeric install
+             exec bash  # or exec zsh
+             ```
+
+             ### Documentation
+             https://modib.github.io/termeric/
           files: |
             termeric-${{ steps.version.outputs.version }}.tar.gz
             termeric_${{ steps.version.outputs.version }}_all.deb
