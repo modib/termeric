@@ -202,7 +202,7 @@ function fish_prompt
             set arrow "$ARROW_PATH"
 
             # Git
-            set -l git_info (__tmerm_git_info)
+            set -l git_info (__tmerm_git_info 2>/dev/null)
             if test -n "$git_info"
                 set data "$data$BG_GIT$arrow$PSEP$R$BG_GIT$TXT_BG_LIT"
                 set data "$data $git_info $R"
@@ -247,7 +247,7 @@ function fish_prompt
             set data "$data$TXT_USER"(whoami)"@"(hostname)"$R "
             set data "$data$TXT_PATH"(prompt_pwd)"$R"
 
-            set -l git_info (__tmerm_git_info)
+            set -l git_info (__tmerm_git_info 2>/dev/null)
             if test -n "$git_info"
                 set data "$data $TXT_GIT($git_info)$R"
             end
@@ -266,7 +266,7 @@ function fish_prompt
         # ── MONOCHROME MODE ──
         set data (whoami)"@"(hostname)":"(prompt_pwd)
 
-        set -l git_info (__tmerm_git_info)
+        set -l git_info (__tmerm_git_info 2>/dev/null)
         if test -n "$git_info"
             set data "$data ($git_info)"
         end

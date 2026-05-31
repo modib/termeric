@@ -174,7 +174,7 @@ __termeric_prompt() {
 
             # Git
             local git_info
-            git_info=$(__tmerm_git_info)
+            git_info=$(__tmerm_git_info 2>/dev/null)
             if [ -n "$git_info" ]; then
                 data+="${BG_GIT}${arrow}${psep}${R}${BG_GIT}${TXT_BG_LIT}"
                 data+=" $git_info ${R}"
@@ -215,7 +215,7 @@ __termeric_prompt() {
             data+="${TXT_PATH}%~%f"
 
             local git_info
-            git_info=$(__tmerm_git_info)
+            git_info=$(__tmerm_git_info 2>/dev/null)
             [[ -n "$git_info" ]] && data+=" ${TXT_GIT}($git_info)%f"
 
             if [ "${PROMPT_CMD_TIME:-off}" != "off" ] && (( __tmerm_timer > 0 )); then
@@ -230,7 +230,7 @@ __termeric_prompt() {
         data+="%n@%m:%~"
 
         local git_info
-        git_info=$(__tmerm_git_info)
+        git_info=$(__tmerm_git_info 2>/dev/null)
         [[ -n "$git_info" ]] && data+=" ($git_info)"
 
         [[ "$rc" -ne 0 ]] && data="[$rc] $data"
