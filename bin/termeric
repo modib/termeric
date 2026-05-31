@@ -117,10 +117,12 @@ _cmd_install() {
 		# Check for existing termeric source lines (prevent duplication)
 		local existing_count=0
 		if [ -f "$HOME/.zshrc" ]; then
-			existing_count=$(grep -c "termeric" "$HOME/.zshrc" 2>/dev/null || echo 0)
+			existing_count=$(grep -c "termeric" "$HOME/.zshrc" 2>/dev/null || true)
+			existing_count=${existing_count:-0}
+			existing_count=$(echo "$existing_count" | tr -d '[:space:]')
 		fi
 
-		if [ "$existing_count" -eq 0 ]; then
+		if [ "$existing_count" -eq 0 ] 2>/dev/null; then
 			# Check for conflicting prompt customizations
 			local conflicts=""
 			if [ -f "$HOME/.zshrc" ]; then
