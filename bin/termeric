@@ -17,10 +17,10 @@ else
 fi
 
 # ── Helpers ─────────────────────────────────────────────────────
-_info() { printf "${CYAN}▸${RESET} %s\n" "$*"; }
-_ok() { printf "${GREEN}✓${RESET} %s\n" "$*"; }
-_warn() { printf "${GOLD}⚠${RESET} %s\n" "$*"; }
-_err() { printf "${RED}✗${RESET} %s\n" "$*" >&2; }
+_info() { printf "%b %s\n" "${CYAN}▸${RESET}" "$*"; }
+_ok() { printf "%b %s\n" "${GREEN}✓${RESET}" "$*"; }
+_warn() { printf "%b %s\n" "${GOLD}⚠${RESET}" "$*"; }
+_err() { printf "%b %s\n" "${RED}✗${RESET}" "$*" >&2; }
 
 _show_help() {
 	cat <<EOF
@@ -265,7 +265,7 @@ CONF
 # ── Status ──────────────────────────────────────────────────────
 _cmd_status() {
 	echo ""
-	printf "${GOLD}${BOLD}termeric${RESET} v${TIRMERIC_VERSION}\n"
+	printf "%b%b%b" "${GOLD}${BOLD}" "termeric v${TIRMERIC_VERSION}" "${RESET}\n"
 	echo "─────────────────────────────────────"
 
 	# Shell
@@ -274,18 +274,18 @@ _cmd_status() {
 	# Installed files
 	for f in ~/.termeric_bash ~/.termeric_zsh ~/.config/fish/termeric_fish; do
 		if [ -f "$f" ]; then
-			printf "  %-22s ${GREEN}installed${RESET}\n" "$(basename $f)"
+			printf "%b" "  $(basename $f) ${GREEN}installed${RESET}\n"
 		else
-			printf "  %-22s ${RED}not found${RESET}\n" "$(basename $f)"
+			printf "%b" "  $(basename $f) ${RED}not found${RESET}\n"
 		fi
 	done
 
 	# Sourced in rc
 	for rc in ~/.bashrc ~/.zshrc ~/.config/fish/config.fish; do
 		if [ -f "$rc" ] && grep -q "termeric" "$rc" 2>/dev/null; then
-			printf "  %-22s ${GREEN}sourced${RESET}\n" "$(basename $rc)"
+			printf "%b\n" "  $(basename $rc) ${GREEN}sourced${RESET}"
 		else
-			printf "  %-22s ${RED}not sourced${RESET}\n" "$(basename $rc)"
+			printf "%b\n" "  $(basename $rc) ${RED}not sourced${RESET}"
 		fi
 	done
 
@@ -293,18 +293,18 @@ _cmd_status() {
 	if fc-list 2>/dev/null | grep -qi "meslo.*nerd\|nerd.*meslo" ||
 		ls ~/Library/Fonts/ 2>/dev/null | grep -qi "meslo.*nerd\|nerd.*meslo" ||
 		ls ~/.local/share/fonts/ 2>/dev/null | grep -qi "meslo.*nerd\|nerd.*meslo"; then
-		printf "  Nerd Font:     ${GREEN}installed${RESET}\n"
+		printf "%b" "  Nerd Font:     ${GREEN}installed${RESET}\n"
 	else
-		printf "  Nerd Font:     ${RED}not installed${RESET} (run: termeric font)\n"
+		printf "%b" "  Nerd Font:     ${RED}not installed${RESET} (run: termeric font)\n"
 	fi
 
 	# Git cache
 	if [ -d .git ]; then
 		local cache=".git/.termeric_cache"
 		if [ -f "$cache" ]; then
-			printf "  Git cache:     ${GREEN}active${RESET}\n"
+			printf "%b" "  Git cache:     ${GREEN}active${RESET}\n"
 		else
-			printf "  Git cache:     ${GOLD}cold${RESET}\n"
+			printf "%b" "  Git cache:     ${GOLD}cold${RESET}\n"
 		fi
 	fi
 
@@ -365,7 +365,7 @@ _cmd_font() {
 # ── Doctor ──────────────────────────────────────────────────────
 _cmd_doctor() {
 	echo ""
-	printf "${GOLD}${BOLD}termeric doctor${RESET}\n"
+	printf "%b%b%b" "${GOLD}${BOLD}" "termeric doctor" "${RESET}\n"
 	echo "─────────────────────────────────────"
 
 	local issues=0
