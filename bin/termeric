@@ -23,44 +23,40 @@ _warn() { printf "%b %b\n" "${GOLD}⚠${RESET}" "$*"; }
 _err() { printf "%b %b\n" "${RED}✗${RESET}" "$*" >&2; }
 
 _show_help() {
-	cat <<EOF
-${GOLD}${BOLD}termeric${RESET} — Golden prompts for your terminal
-
-${BOLD}Usage:${RESET}
-  termeric <command> [options]
-
-${BOLD}Commands:${RESET}
-  install       Install termeric to current shell
-  uninstall     Remove termeric from shell config
-  update        Pull latest version and reinstall
-  config        Open config in \$EDITOR
-  status        Show current settings and diagnostics
-  font          Install Meslo Nerd Font
-  doctor        Check system compatibility
-  version       Show version
-  help          Show this message
-
-${BOLD}Examples:${RESET}
-  termeric install           # quick setup
-  termeric install --font    # setup with Nerd Font
-  termeric status            # check what's active
-  termeric doctor            # verify system readiness
-
-${BOLD}Configuration:${RESET}
-  Set these before sourcing termeric:
-
-    bash/zsh:   export GIT_COLORS=on        (in ~/.bashrc or ~/.zshrc)
-    fish:       set -g GIT_COLORS on         (in ~/.config/fish/config.fish)
-
-    GIT_COLORS=on         Powerline segments (default: on)
-    PROMPT_EXIT_CODE=on   Show exit indicator (default: on)
-    PROMPT_CMD_TIME=on    Show command duration (default: off)
-    PROMPT_COLOR_MODE=256 Color mode: 256color or xterm (default: 256color)
-    PROMPT_USER_HOST=on   Show user@host segment (default: on)
-
-${BOLD}Docs:${RESET}
-  https://github.com/modib/termeric
-EOF
+	printf "%b\n" \
+		"${GOLD}${BOLD}termeric${RESET} — Golden prompts for your terminal" \
+		"" \
+		"${BOLD}Usage:${RESET}" \
+		"  termeric <command> [options]" \
+		"" \
+		"${BOLD}Commands:${RESET}" \
+		"  install       Install termeric to current shell" \
+		"  uninstall     Remove termeric from shell config" \
+		"  update        Pull latest version and reinstall" \
+		"  config        Open config in \$EDITOR" \
+		"  status        Show current settings and diagnostics" \
+		"  font          Install Meslo Nerd Font" \
+		"  doctor        Check system compatibility" \
+		"  version       Show version" \
+		"  help          Show this message" \
+		"" \
+		"${BOLD}Examples:${RESET}" \
+		"  termeric install           # quick setup" \
+		"  termeric install --font    # setup with Nerd Font" \
+		"  termeric status            # check what's active" \
+		"  termeric doctor            # verify system readiness" \
+		"" \
+		"${BOLD}Configuration:${RESET}" \
+		"  Set these before sourcing termeric:" \
+		"" \
+		"    GIT_COLORS=on         Powerline segments (default: on)" \
+		"    PROMPT_EXIT_CODE=on   Show exit indicator (default: on)" \
+		"    PROMPT_CMD_TIME=on    Show command duration (default: off)" \
+		"    PROMPT_COLOR_MODE=256 Color mode: 256color or xterm (default: 256color)" \
+		"    PROMPT_USER_HOST=on   Show user@host segment (default: on)" \
+		"" \
+		"${BOLD}Docs:${RESET}" \
+		"  https://github.com/modib/termeric"
 }
 
 # ── Detect shell ────────────────────────────────────────────────

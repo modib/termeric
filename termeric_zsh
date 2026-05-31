@@ -60,7 +60,7 @@ if [ "$_tmerm_color" = yes ]; then
     TXT_PATH="%F{blue}"
     TXT_GIT="%F{yellow}"
     TXT_TIME="%F{cyan}"
-    PSEP=''
+    PSEP=''
 fi
 
 # ── Command duration tracking ──────────────────────────────────
