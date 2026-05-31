@@ -616,6 +616,62 @@
             </div>
         </section>
 
+        <!-- Install -->
+        <section id="install" class="install">
+            <h2>Get Started in Seconds</h2>
+            <div class="install-commands">
+                <div class="install-cmd">
+                    <code>brew tap modib/termeric && brew install termeric</code>
+                    <button class="copy-btn" onclick="copyCmd(this)">Copy</button>
+                </div>
+                <div class="install-cmd">
+                    <code>termeric install</code>
+                    <button class="copy-btn" onclick="copyCmd(this)">Copy</button>
+                </div>
+                <div class="install-cmd">
+                    <code>exec zsh</code>
+                    <button class="copy-btn" onclick="copyCmd(this)">Copy</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Performance -->
+        <section class="perf">
+            <h2>Performance</h2>
+            <p class="perf-subtitle">Average prompt render time in a medium git repository</p>
+            <table class="perf-table">
+                <thead>
+                    <tr>
+                        <th>Tool</th>
+                        <th>Render Time</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr class="highlight">
+                        <td><strong>termeric</strong></td>
+                        <td class="perf-fast">~8ms</td>
+                        <td class="perf-fast">Blazing fast</td>
+                    </tr>
+                    <tr>
+                        <td>starship</td>
+                        <td>~45ms</td>
+                        <td>Good</td>
+                    </tr>
+                    <tr>
+                        <td>oh-my-posh</td>
+                        <td>~80ms</td>
+                        <td>Moderate</td>
+                    </tr>
+                    <tr>
+                        <td>pure</td>
+                        <td>~30ms</td>
+                        <td>Good</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
         <!-- Docs -->
         <section class="docs" id="docs">
             <h2>Documentation</h2>
@@ -741,63 +797,6 @@
             </div>
         </section>
 
-        <!-- Performance -->
-        <section class="perf">
-            <h2>Performance</h2>
-            <p class="perf-subtitle">Average prompt render time in a medium git repository</p>
-            <table class="perf-table">
-                <thead>
-                    <tr>
-                        <th>Tool</th>
-                        <th>Render Time</th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr class="highlight">
-                        <td><strong>termeric</strong></td>
-                        <td class="perf-fast">~8ms</td>
-                        <td class="perf-fast">Blazing fast</td>
-                    </tr>
-                    <tr>
-                        <td>starship</td>
-                        <td>~45ms</td>
-                        <td>Good</td>
-                    </tr>
-                    <tr>
-                        <td>oh-my-posh</td>
-                        <td>~80ms</td>
-                        <td>Moderate</td>
-                    </tr>
-                    <tr>
-                        <td>pure</td>
-                        <td>~30ms</td>
-                        <td>Good</td>
-                    </tr>
-                </tbody>
-            </table>
-        </section>
-
-        <!-- Install -->
-        <section id="install" class="install">
-            <h2>Get Started in Seconds</h2>
-            <div class="install-commands">
-                <div class="install-cmd">
-                    <code>brew tap modib/termeric && brew install termeric</code>
-                    <button class="copy-btn" onclick="copyCmd(this)">Copy</button>
-                </div>
-                <div class="install-cmd">
-                    <code>termeric install</code>
-                    <button class="copy-btn" onclick="copyCmd(this)">Copy</button>
-                </div>
-                <div class="install-cmd">
-                    <code>exec zsh</code>
-                    <button class="copy-btn" onclick="copyCmd(this)">Copy</button>
-                </div>
-            </div>
-        </section>
-
-        <!-- Footer -->
         <footer>
             <p>
                 Built with care by <a href="https://github.com/modib">modib</a> •
