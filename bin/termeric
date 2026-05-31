@@ -17,10 +17,10 @@ else
 fi
 
 # ── Helpers ─────────────────────────────────────────────────────
-_info() { printf "%b %s\n" "${CYAN}▸${RESET}" "$*"; }
-_ok() { printf "%b %s\n" "${GREEN}✓${RESET}" "$*"; }
-_warn() { printf "%b %s\n" "${GOLD}⚠${RESET}" "$*"; }
-_err() { printf "%b %s\n" "${RED}✗${RESET}" "$*" >&2; }
+_info() { printf "%b %b\n" "${CYAN}▸${RESET}" "$*"; }
+_ok() { printf "%b %b\n" "${GREEN}✓${RESET}" "$*"; }
+_warn() { printf "%b %b\n" "${GOLD}⚠${RESET}" "$*"; }
+_err() { printf "%b %b\n" "${RED}✗${RESET}" "$*" >&2; }
 
 _show_help() {
 	cat <<EOF

@@ -37,7 +37,7 @@ if [ "$_tmerm_color" = yes ]; then
     TXT_PATH="\[${E}[94m\]"
     TXT_GIT="\[${E}[33m\]"
     TXT_TIME="\[${E}[96m\]"
-    PSEP='▶'
+    PSEP=''
 fi
 
 # ── Command duration tracking ──────────────────────────────────
