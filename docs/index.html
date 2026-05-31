@@ -168,13 +168,13 @@
         }
 
         .segment:first-child {
+            padding-left: 0;
             clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 50%, calc(100% - 12px) 100%, 0 100%);
         }
 
         .segment:first-child::before {
             content: "";
             color: #1E1E1E;
-            margin-left: -16px;
         }
 
         .segment:last-child {
@@ -451,7 +451,7 @@
                         <span class="trailing-sep"></span>
                     </div>
                     <div class="prompt-powerline">
-                        <span class="segment segment-prompt"> %# </span>
+                        <span class="segment segment-prompt"> % </span>
                         <span class="trailing-sep-green"></span>
                     </div>
                 </div>
