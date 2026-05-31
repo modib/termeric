@@ -174,7 +174,9 @@ jobs:
         run: zsh -n termeric_zsh
 
       - name: Test fish syntax
-        run: fish -n termeric_fish
+        run: |
+          brew install fish
+          fish -n termeric_fish
 
       - name: Test CLI
         run: |
@@ -216,6 +218,7 @@ jobs:
       - name: Build deb package
         run: |
           mkdir -p /tmp/termeric-pkg/DEBIAN
+          mkdir -p /tmp/termeric-pkg/opt/termeric
           cp -r . /tmp/termeric-pkg/opt/termeric
           cat > /tmp/termeric-pkg/DEBIAN/control << 'EOF'
           Package: termeric
