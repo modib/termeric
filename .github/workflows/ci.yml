@@ -229,8 +229,8 @@ jobs:
           Depends: bash, zsh, git
           Maintainer: modib <noreply@github.com>
            Homepage: https://modib.github.io/termeric/
-          Description: Golden prompts for your terminal
-           AI-powered, modernized shell prompt for bash and zsh.
+           Description: Golden prompts for your terminal
+            AI-powered, modernized shell prompt for bash, zsh, and fish.
           EOF
           dpkg-deb --build /tmp/termeric-pkg termeric_1.0.0_all.deb
 

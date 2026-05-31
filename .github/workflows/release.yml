@@ -20,6 +20,7 @@ jobs:
 
       - name: Run tests
         run: |
+          sudo apt-get update && sudo apt-get install -y zsh fish
           bash -n termeric_bash
           bash -n bin/termeric
           zsh -n termeric_zsh
@@ -43,7 +44,7 @@ jobs:
           mkdir -p /tmp/termeric-pkg/usr/share/zsh/site-functions
           mkdir -p /tmp/termeric-pkg/usr/share/fish/vendor_completions.d
           cp bin/termeric /tmp/termeric-pkg/usr/bin/
-          cp termeric_bash termeric_zsh /tmp/termeric-pkg/usr/share/termeric/
+          cp termeric_bash termeric_zsh termeric_fish /tmp/termeric-pkg/usr/share/termeric/
           cp completions/termeric.bash /tmp/termeric-pkg/usr/share/bash-completion/completions/termeric
           cp completions/termeric.zsh /tmp/termeric-pkg/usr/share/zsh/site-functions/_termeric
           cp completions/termeric.fish /tmp/termeric-pkg/usr/share/fish/vendor_completions.d/
@@ -57,7 +58,7 @@ jobs:
           Maintainer: modib <noreply@github.com>
           Homepage: https://modib.github.io/termeric/
           Description: Golden prompts for your terminal
-           AI-powered, modernized shell prompt for bash and zsh.
+           AI-powered, modernized shell prompt for bash, zsh, and fish.
           EOF
           dpkg-deb --build /tmp/termeric-pkg termeric_${{ steps.version.outputs.version }}_all.deb
 
