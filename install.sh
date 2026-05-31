@@ -18,10 +18,10 @@ else
     GOLD='' GREEN='' RED='' CYAN='' BOLD='' RESET=''
 fi
 
-_info()  { printf "${CYAN}▸${RESET} %s\n" "$*"; }
-_ok()    { printf "${GREEN}✓${RESET} %s\n" "$*"; }
-_warn()  { printf "${GOLD}⚠${RESET} %s\n" "$*"; }
-_err()   { printf "${RED}✗${RESET} %s\n" "$*" >&2; }
+_info() { printf "${CYAN}▸${RESET} %s\n" "$*"; }
+_ok() { printf "${GREEN}✓${RESET} %s\n" "$*"; }
+_warn() { printf "${GOLD}⚠${RESET} %s\n" "$*"; }
+_err() { printf "${RED}✗${RESET} %s\n" "$*" >&2; }
 
 # ── Help ────────────────────────────────────────────────────────
 show_help() {
@@ -52,13 +52,24 @@ DO_UNINSTALL=0
 
 for arg in "$@"; do
     case "$arg" in
-        --prefix)    shift; INSTALL_PREFIX="$1"; shift ;;
-        --prefix=*)  INSTALL_PREFIX="${arg#*=}" ;;
-        --font)      INSTALL_FONT=1 ;;
-        --link)      INSTALL_LINK=1 ;;
-        --uninstall) DO_UNINSTALL=1 ;;
-        --help)      show_help; exit 0 ;;
-        *)           _err "Unknown option: $arg"; show_help; exit 1 ;;
+    --prefix)
+        shift
+        INSTALL_PREFIX="$1"
+        shift
+        ;;
+    --prefix=*) INSTALL_PREFIX="${arg#*=}" ;;
+    --font) INSTALL_FONT=1 ;;
+    --link) INSTALL_LINK=1 ;;
+    --uninstall) DO_UNINSTALL=1 ;;
+    --help)
+        show_help
+        exit 0
+        ;;
+    *)
+        _err "Unknown option: $arg"
+        show_help
+        exit 1
+        ;;
     esac
 done
 
@@ -105,17 +116,28 @@ _download_font() {
     fi
 
     local downloader
-    if command -v curl &>/dev/null; then downloader="curl -fsSL"
-    elif command -v wget &>/dev/null; then downloader="wget -qO"
-    else _err "Neither curl nor wget found."; return 1; fi
+    if command -v curl &>/dev/null; then
+        downloader="curl -fsSL"
+    elif command -v wget &>/dev/null; then
+        downloader="wget -qO"
+    else
+        _err "Neither curl nor wget found."
+        return 1
+    fi
 
     local tmpdir
     tmpdir="$(mktemp -d)"
     (
         cd "$tmpdir" || exit 1
         _info "Downloading Meslo Nerd Font..."
-        $downloader "$url" -o Meslo.zip || { _err "Download failed."; exit 1; }
-        unzip -q Meslo.zip -d meslo-nerd || { _err "Extraction failed."; exit 1; }
+        $downloader "$url" -o Meslo.zip || {
+            _err "Download failed."
+            exit 1
+        }
+        unzip -q Meslo.zip -d meslo-nerd || {
+            _err "Extraction failed."
+            exit 1
+        }
         mkdir -p "$target_dir"
         cp meslo-nerd/*.ttf "$target_dir/"
     )
@@ -162,17 +184,28 @@ _download_font() {
     fi
 
     local downloader
-    if command -v curl &>/dev/null; then downloader="curl -fsSL"
-    elif command -v wget &>/dev/null; then downloader="wget -qO"
-    else _err "Neither curl nor wget found."; return 1; fi
+    if command -v curl &>/dev/null; then
+        downloader="curl -fsSL"
+    elif command -v wget &>/dev/null; then
+        downloader="wget -qO"
+    else
+        _err "Neither curl nor wget found."
+        return 1
+    fi
 
     local tmpdir
     tmpdir="$(mktemp -d)"
     (
         cd "$tmpdir" || exit 1
         _info "Downloading Meslo Nerd Font..."
-        $downloader "$url" -o Meslo.zip || { _err "Download failed."; exit 1; }
-        unzip -q Meslo.zip -d meslo-nerd || { _err "Extraction failed."; exit 1; }
+        $downloader "$url" -o Meslo.zip || {
+            _err "Download failed."
+            exit 1
+        }
+        unzip -q Meslo.zip -d meslo-nerd || {
+            _err "Extraction failed."
+            exit 1
+        }
         mkdir -p "$target_dir"
         cp meslo-nerd/*.ttf "$target_dir/"
     )
@@ -217,8 +250,8 @@ do_uninstall() {
 
     for rc_file in "$HOME/.bashrc" "$HOME/.zshrc"; do
         if [ -f "$rc_file" ]; then
-            sed -i.bak '/# termeric — golden prompt/,+4d' "$rc_file" 2>/dev/null || \
-            sed -i '' '/# termeric — golden prompt/,+4d' "$rc_file" 2>/dev/null || true
+            sed -i.bak '/# termeric — golden prompt/,+4d' "$rc_file" 2>/dev/null ||
+                sed -i '' '/# termeric — golden prompt/,+4d' "$rc_file" 2>/dev/null || true
             rm -f "${rc_file}.bak"
         fi
     done
@@ -256,7 +289,7 @@ do_install() {
             echo 'if [ -f ~/.termeric_bash ]; then'
             echo '    . ~/.termeric_bash'
             echo 'fi'
-        } >> "$HOME/.bashrc"
+        } >>"$HOME/.bashrc"
         _ok "Added source line to ~/.bashrc"
     fi
 
@@ -268,7 +301,7 @@ do_install() {
             echo 'if [ -f ~/.termeric_zsh ]; then'
             echo '    . ~/.termeric_zsh'
             echo 'fi'
-        } >> "$HOME/.zshrc"
+        } >>"$HOME/.zshrc"
         _ok "Added source line to ~/.zshrc"
     fi
 
@@ -282,8 +315,8 @@ do_install() {
     fi
 
     case ":$PATH:" in
-        *":$HOME/.local/bin:"*) ;;
-        *) _warn "Add ~/.local/bin to your PATH:\n  export PATH=\"\$HOME/.local/bin:\$PATH\"" ;;
+    *":$HOME/.local/bin:"*) ;;
+    *) _warn "Add ~/.local/bin to your PATH:\n  export PATH=\"\$HOME/.local/bin:\$PATH\"" ;;
     esac
 
     # Font

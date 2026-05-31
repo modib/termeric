@@ -17,10 +17,10 @@ else
 fi
 
 # ── Helpers ─────────────────────────────────────────────────────
-_info()  { printf "${CYAN}▸${RESET} %s\n" "$*"; }
-_ok()    { printf "${GREEN}✓${RESET} %s\n" "$*"; }
-_warn()  { printf "${GOLD}⚠${RESET} %s\n" "$*"; }
-_err()   { printf "${RED}✗${RESET} %s\n" "$*" >&2; }
+_info() { printf "${CYAN}▸${RESET} %s\n" "$*"; }
+_ok() { printf "${GREEN}✓${RESET} %s\n" "$*"; }
+_warn() { printf "${GOLD}⚠${RESET} %s\n" "$*"; }
+_err() { printf "${RED}✗${RESET} %s\n" "$*" >&2; }
 
 _show_help() {
     cat <<EOF
@@ -76,8 +76,11 @@ _cmd_install() {
     local install_font=0
     for arg in "$@"; do
         case "$arg" in
-            --font) install_font=1 ;;
-            *) _err "Unknown option: $arg"; exit 1 ;;
+        --font) install_font=1 ;;
+        *)
+            _err "Unknown option: $arg"
+            exit 1
+            ;;
         esac
     done
 
@@ -97,7 +100,7 @@ _cmd_install() {
                 echo 'if [ -f ~/.termeric_bash ]; then'
                 echo '    . ~/.termeric_bash'
                 echo 'fi'
-            } >> "$HOME/.bashrc"
+            } >>"$HOME/.bashrc"
             _ok "Added source line to ~/.bashrc"
         else
             _info "~/.bashrc already sources termeric_bash"
@@ -116,7 +119,7 @@ _cmd_install() {
                 echo 'if [ -f ~/.termeric_zsh ]; then'
                 echo '    . ~/.termeric_zsh'
                 echo 'fi'
-            } >> "$HOME/.zshrc"
+            } >>"$HOME/.zshrc"
             _ok "Added source line to ~/.zshrc"
         else
             _info "~/.zshrc already sources termeric_zsh"
@@ -136,7 +139,7 @@ _cmd_install() {
                 echo ""
                 echo "# termeric — golden prompt"
                 echo 'source ~/.config/fish/termeric_fish'
-            } >> "$fish_config"
+            } >>"$fish_config"
             _ok "Added source line to ~/.config/fish/config.fish"
         else
             _info "~/.config/fish/config.fish already sources termeric_fish"
@@ -150,8 +153,8 @@ _cmd_install() {
         _ok "Symlinked termeric to ~/.local/bin/"
 
         case ":$PATH:" in
-            *":$HOME/.local/bin:"*) ;;
-            *) _warn "Add ~/.local/bin to your PATH:\n  export PATH=\"\$HOME/.local/bin:\$PATH\"" ;;
+        *":$HOME/.local/bin:"*) ;;
+        *) _warn "Add ~/.local/bin to your PATH:\n  export PATH=\"\$HOME/.local/bin:\$PATH\"" ;;
         esac
     fi
 
@@ -173,8 +176,8 @@ _cmd_uninstall() {
     # Remove source lines from bash/zsh
     for rc_file in "$HOME/.bashrc" "$HOME/.zshrc"; do
         if [ -f "$rc_file" ]; then
-            sed -i.bak '/# termeric — golden prompt/,+4d' "$rc_file" 2>/dev/null || \
-            sed -i '' '/# termeric — golden prompt/,+4d' "$rc_file" 2>/dev/null || true
+            sed -i.bak '/# termeric — golden prompt/,+4d' "$rc_file" 2>/dev/null ||
+                sed -i '' '/# termeric — golden prompt/,+4d' "$rc_file" 2>/dev/null || true
             rm -f "${rc_file}.bak"
         fi
     done
@@ -183,8 +186,8 @@ _cmd_uninstall() {
     local fish_config_dir="$HOME/.config/fish"
     rm -f "$fish_config_dir/termeric_fish"
     if [ -f "$fish_config_dir/config.fish" ]; then
-        sed -i.bak '/# termeric — golden prompt/,+2d' "$fish_config_dir/config.fish" 2>/dev/null || \
-        sed -i '' '/# termeric — golden prompt/,+2d' "$fish_config_dir/config.fish" 2>/dev/null || true
+        sed -i.bak '/# termeric — golden prompt/,+2d' "$fish_config_dir/config.fish" 2>/dev/null ||
+            sed -i '' '/# termeric — golden prompt/,+2d' "$fish_config_dir/config.fish" 2>/dev/null || true
         rm -f "${fish_config_dir}/config.fish.bak"
     fi
 
@@ -210,7 +213,7 @@ _cmd_update() {
 _cmd_config() {
     local config_file="${TIRMERIC_CONFIG:-$HOME/.termericrc}"
     if [ ! -f "$config_file" ]; then
-        cat > "$config_file" <<'CONF'
+        cat >"$config_file" <<'CONF'
 # termeric configuration
 # Set these to override defaults
 
@@ -251,9 +254,9 @@ _cmd_status() {
     done
 
     # Font
-    if fc-list 2>/dev/null | grep -qi "meslo.*nerd\|nerd.*meslo" || \
-       ls ~/Library/Fonts/ 2>/dev/null | grep -qi "meslo.*nerd\|nerd.*meslo" || \
-       ls ~/.local/share/fonts/ 2>/dev/null | grep -qi "meslo.*nerd\|nerd.*meslo"; then
+    if fc-list 2>/dev/null | grep -qi "meslo.*nerd\|nerd.*meslo" ||
+        ls ~/Library/Fonts/ 2>/dev/null | grep -qi "meslo.*nerd\|nerd.*meslo" ||
+        ls ~/.local/share/fonts/ 2>/dev/null | grep -qi "meslo.*nerd\|nerd.*meslo"; then
         printf "  Nerd Font:     ${GREEN}installed${RESET}\n"
     else
         printf "  Nerd Font:     ${RED}not installed${RESET} (run: termeric font)\n"
@@ -276,9 +279,9 @@ _cmd_status() {
 _cmd_font() {
     _info "Installing Meslo Nerd Font..."
 
-    if fc-list 2>/dev/null | grep -qi "meslo.*nerd\|nerd.*meslo" || \
-       ls ~/Library/Fonts/ 2>/dev/null | grep -qi "meslo.*nerd\|nerd.*meslo" || \
-       ls ~/.local/share/fonts/ 2>/dev/null | grep -qi "meslo.*nerd\|nerd.*meslo"; then
+    if fc-list 2>/dev/null | grep -qi "meslo.*nerd\|nerd.*meslo" ||
+        ls ~/Library/Fonts/ 2>/dev/null | grep -qi "meslo.*nerd\|nerd.*meslo" ||
+        ls ~/.local/share/fonts/ 2>/dev/null | grep -qi "meslo.*nerd\|nerd.*meslo"; then
         _ok "Meslo Nerd Font already installed"
         return 0
     fi
@@ -372,18 +375,18 @@ _cmd_doctor() {
 
     # Terminal
     case "${TERM:-}" in
-        xterm-color|*-256color|*-truecolor)
-            _ok "Terminal supports color ($TERM)"
-            ;;
-        *)
-            _warn "Terminal may not support truecolor ($TERM)"
-            ;;
+    xterm-color | *-256color | *-truecolor)
+        _ok "Terminal supports color ($TERM)"
+        ;;
+    *)
+        _warn "Terminal may not support truecolor ($TERM)"
+        ;;
     esac
 
     # Font
-    if fc-list 2>/dev/null | grep -qi "meslo.*nerd\|nerd.*meslo" || \
-       ls ~/Library/Fonts/ 2>/dev/null | grep -qi "meslo.*nerd\|nerd.*meslo" || \
-       ls ~/.local/share/fonts/ 2>/dev/null | grep -qi "meslo.*nerd\|nerd.*meslo"; then
+    if fc-list 2>/dev/null | grep -qi "meslo.*nerd\|nerd.*meslo" ||
+        ls ~/Library/Fonts/ 2>/dev/null | grep -qi "meslo.*nerd\|nerd.*meslo" ||
+        ls ~/.local/share/fonts/ 2>/dev/null | grep -qi "meslo.*nerd\|nerd.*meslo"; then
         _ok "Meslo Nerd Font installed"
     else
         _warn "Meslo Nerd Font not installed (run: termeric font)"
@@ -405,14 +408,21 @@ _cmd_version() {
 
 # ── Main ────────────────────────────────────────────────────────
 case "${1:-help}" in
-    install)   shift; _cmd_install "$@" ;;
-    uninstall) _cmd_uninstall ;;
-    update)    _cmd_update ;;
-    config)    _cmd_config ;;
-    status)    _cmd_status ;;
-    font)      _cmd_font ;;
-    doctor)    _cmd_doctor ;;
-    version)   _cmd_version ;;
-    help|-h|--help) _show_help ;;
-    *) _err "Unknown command: $1"; _show_help; exit 1 ;;
+install)
+    shift
+    _cmd_install "$@"
+    ;;
+uninstall) _cmd_uninstall ;;
+update) _cmd_update ;;
+config) _cmd_config ;;
+status) _cmd_status ;;
+font) _cmd_font ;;
+doctor) _cmd_doctor ;;
+version) _cmd_version ;;
+help | -h | --help) _show_help ;;
+*)
+    _err "Unknown command: $1"
+    _show_help
+    exit 1
+    ;;
 esac
