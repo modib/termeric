@@ -20,16 +20,16 @@ case "$TERM" in xterm*|rxvt*) _tmerm_has_title=yes;; esac
 
 zmodload zsh/datetime 2>/dev/null
 
-# ── Color definitions (once) ──────────────────────────────────
-if [ "$_tmerm_color" = yes ]; then
+# ── Color definitions (re-evaluated when mode changes) ──────────
+__tmerm_init_colors() {
+    local new_mode="${PROMPT_COLOR_MODE:-256color}"
+    [ "$new_mode" = "$_tmerm_color_mode" ] && return
+    _tmerm_color_mode="$new_mode"
+
     E=$'\e'
     R="%{${E}[0m%}"
 
-    # Select color mode
-    _tmerm_color_mode="${PROMPT_COLOR_MODE:-256color}"
-
     if [ "$_tmerm_color_mode" = "xterm" ]; then
-        # 16-color mode for basic terminals
         BG_OK="%{${E}[42m%}";         ARROW_OK="%{${E}[32m%}"
         BG_FAIL="%{${E}[41m%}";       ARROW_FAIL="%{${E}[31m%}"
         BG_USER="%{${E}[44m%}";       ARROW_USER="%{${E}[34m%}"
@@ -41,7 +41,6 @@ if [ "$_tmerm_color" = yes ]; then
         TXT_BG="%{${E}[97m%}"
         TXT_BG_LIT="%{${E}[30m%}"
     else
-        # 24-bit truecolor mode (default)
         BG_OK="%{${E}[48;2;0;210;0m%}";      ARROW_OK="%{${E}[38;2;0;210;0m%}"
         BG_FAIL="%{${E}[48;2;220;50;50m%}";  ARROW_FAIL="%{${E}[38;2;220;50;50m%}"
         BG_USER="%{${E}[48;2;50;100;220m%}"; ARROW_USER="%{${E}[38;2;50;100;220m%}"
@@ -60,7 +59,12 @@ if [ "$_tmerm_color" = yes ]; then
     TXT_PATH="%F{blue}"
     TXT_GIT="%F{yellow}"
     TXT_TIME="%F{cyan}"
-    PSEP=''
+    PSEP=
+}
+
+if [ "$_tmerm_color" = yes ]; then
+    _tmerm_color_mode=""
+    __tmerm_init_colors
 fi
 
 # ── Command duration tracking ──────────────────────────────────
@@ -151,6 +155,7 @@ __termeric_prompt() {
     [[ "$_tmerm_has_title" == yes ]] && data+=$'%{\e]0;%n@%m: %~\a%}'
 
     if [ "$_tmerm_color" = yes ]; then
+        __tmerm_init_colors
         if [ "${GIT_COLORS-${_tmerm_default_colors:-on}}" != "off" ]; then
             # ── POWERLINE MODE ──
 
@@ -166,7 +171,7 @@ __termeric_prompt() {
             fi
 
             # Session
-            if [ "${PROMPT_USER_HOST:-on}" != "off" ]; then
+            if [ "${PROMPT_USER_HOST:-off}" != "off" ]; then
                 if [ -n "$arrow" ]; then
                     data+="${BG_USER}${arrow}${psep}${R}${BG_USER}${TXT_BG}"
                 else

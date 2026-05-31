@@ -63,7 +63,7 @@ if test "$_tmerm_color" = yes
     set -g R (set_color normal)
 
     # Powerline separator
-    set -g PSEP ''
+    set -g PSEP 
 end
 
 # ── Command duration tracking ──────────────────────────────────

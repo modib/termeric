@@ -53,7 +53,7 @@ _show_help() {
 		"    PROMPT_EXIT_CODE=on   Show exit indicator (default: on)" \
 		"    PROMPT_CMD_TIME=on    Show command duration (default: off)" \
 		"    PROMPT_COLOR_MODE=256 Color mode: 256color or xterm (default: 256color)" \
-		"    PROMPT_USER_HOST=on   Show user@host segment (default: on)" \
+		"    PROMPT_USER_HOST=off   Show user@host segment (default: off)" \
 		"" \
 		"${BOLD}Docs:${RESET}" \
 		"  https://github.com/modib/termeric"
@@ -200,7 +200,30 @@ _cmd_install() {
 	fi
 
 	echo ""
-	_ok "Termeric installed! Run ${BOLD}exec $shell_name${RESET} or open a new terminal."
+	_ok "Termeric installed!"
+
+	# Source the rc file for immediate effect
+	case "$shell_name" in
+	zsh)
+		if [ -f "$HOME/.zshrc" ]; then
+			_info "Sourcing ~/.zshrc..."
+			# shellcheck disable=SC1090
+			. "$HOME/.zshrc" 2>/dev/null || true
+			_ok "Prompt active in current session"
+		fi
+		;;
+	bash)
+		if [ -f "$HOME/.bashrc" ]; then
+			_info "Sourcing ~/.bashrc..."
+			# shellcheck disable=SC1090
+			. "$HOME/.bashrc" 2>/dev/null || true
+			_ok "Prompt active in current session"
+		fi
+		;;
+	*)
+		_info "Run ${BOLD}exec $shell_name${RESET} or open a new terminal."
+		;;
+	esac
 }
 
 # ── Uninstall ───────────────────────────────────────────────────
@@ -297,6 +320,15 @@ _cmd_status() {
 	else
 		printf "%b" "  Nerd Font:     ${RED}not installed${RESET} (run: termeric font)\n"
 	fi
+
+	# Toggle states
+	echo ""
+	printf "%b%b%b" "${BOLD}" "Toggles" "${RESET}\n"
+	printf "  %-20s %s\n" "GIT_COLORS" "${GIT_COLORS:-on}"
+	printf "  %-20s %s\n" "PROMPT_EXIT_CODE" "${PROMPT_EXIT_CODE:-on}"
+	printf "  %-20s %s\n" "PROMPT_CMD_TIME" "${PROMPT_CMD_TIME:-off}"
+	printf "  %-20s %s\n" "PROMPT_COLOR_MODE" "${PROMPT_COLOR_MODE:-256color}"
+	printf "  %-20s %s\n" "PROMPT_USER_HOST" "${PROMPT_USER_HOST:-off}"
 
 	# Git cache
 	if [ -d .git ]; then
@@ -418,6 +450,17 @@ _cmd_doctor() {
 		_warn "Terminal may not support truecolor ($TERM)"
 		;;
 	esac
+
+	# Toggle states
+	echo ""
+	printf "%b%b%b" "${BOLD}" "Toggle states" "${RESET}\n"
+	echo "─────────────────────────────────────"
+	printf "  %-22s %s\n" "GIT_COLORS=${GIT_COLORS:-on}" "($(if [ "${GIT_COLORS:-on}" = "off" ]; then echo "disabled"; else echo "enabled"; fi))"
+	printf "  %-22s %s\n" "PROMPT_EXIT_CODE=${PROMPT_EXIT_CODE:-on}" "($(if [ "${PROMPT_EXIT_CODE:-on}" = "off" ]; then echo "disabled"; else echo "enabled"; fi))"
+	printf "  %-22s %s\n" "PROMPT_CMD_TIME=${PROMPT_CMD_TIME:-off}" "($(if [ "${PROMPT_CMD_TIME:-off}" = "on" ]; then echo "enabled"; else echo "disabled"; fi))"
+	printf "  %-22s %s\n" "PROMPT_COLOR_MODE=${PROMPT_COLOR_MODE:-256color}" ""
+	printf "  %-22s %s\n" "PROMPT_USER_HOST=${PROMPT_USER_HOST:-off}" "($(if [ "${PROMPT_USER_HOST:-off}" = "on" ]; then echo "enabled"; else echo "disabled"; fi))"
+	echo ""
 
 	# Font
 	if fc-list 2>/dev/null | grep -qi "meslo.*nerd\|nerd.*meslo" ||
