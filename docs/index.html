@@ -162,7 +162,6 @@
             padding: 6px 16px;
             display: inline-flex;
             align-items: center;
-            gap: 6px;
             font-family: 'MesloLGS Nerd Font', 'SF Mono', 'Fira Code', monospace;
             clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 50%, calc(100% - 12px) 100%, 0 100%, 12px 50%);
             margin-right: -12px;
@@ -175,7 +174,7 @@
         .segment:first-child::before {
             content: "";
             color: #1E1E1E;
-            margin-right: 4px;
+            margin-left: -16px;
         }
 
         .segment:last-child {
@@ -200,24 +199,23 @@
         }
 
         .trailing-sep {
-            width: 0;
-            height: 0;
-            border-top: 14px solid #C832C8;
-            border-right: 14px solid transparent;
-            border-bottom: 14px solid #C832C8;
+            color: #C832C8;
+            font-family: 'MesloLGS Nerd Font', 'SF Mono', 'Fira Code', monospace;
+            font-size: 14px;
             margin-left: -12px;
+        }
+        .trailing-sep::before {
+            content: "";
         }
 
         .trailing-sep-green {
-            width: 0;
-            height: 0;
-            border-top: 14px solid transparent;
-            border-bottom: 14px solid transparent;
-            border-right: 14px solid #00D200;
+            color: #00D200;
+            font-family: 'MesloLGS Nerd Font', 'SF Mono', 'Fira Code', monospace;
+            font-size: 14px;
+            margin-left: -8px;
         }
-
-        .prompt-symbol {
-            color: var(--text-muted);
+        .trailing-sep-green::before {
+            content: "";
         }
 
         .cursor {
@@ -445,15 +443,15 @@
                 </div>
                 <div class="terminal-body">
                     <div class="prompt-powerline">
-                        <span class="segment segment-ok">✓</span>
-                        <span class="segment segment-user">user@host</span>
-                        <span class="segment segment-path">~/projects/termeric</span>
-                        <span class="segment segment-git">main +3 ~1</span>
-                        <span class="segment segment-time">2s</span>
+                        <span class="segment segment-ok"> ✓ </span>
+                        <span class="segment segment-user"> user@host </span>
+                        <span class="segment segment-path"> ~/projects/termeric </span>
+                        <span class="segment segment-git"> main +3 ~1 </span>
+                        <span class="segment segment-time"> 2s </span>
                         <span class="trailing-sep"></span>
                     </div>
                     <div class="prompt-powerline">
-                        <span class="segment segment-prompt">%</span>
+                        <span class="segment segment-prompt"> %# </span>
                         <span class="trailing-sep-green"></span>
                     </div>
                 </div>
