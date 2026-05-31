@@ -98,7 +98,6 @@ _cmd_install() {
 
 		if ! grep -qxF '[ -f ~/.termeric_bash ] && . ~/.termeric_bash' "$HOME/.bashrc" 2>/dev/null; then
 			{
-				echo ""
 				echo "# termeric — golden prompt"
 				echo 'if [ -f ~/.termeric_bash ]; then'
 				echo '    . ~/.termeric_bash'
@@ -155,7 +154,6 @@ _cmd_install() {
 			fi
 
 			{
-				echo ""
 				echo "# termeric — golden prompt"
 				echo 'if [ -f ~/.termeric_zsh ]; then'
 				echo '    . ~/.termeric_zsh'
@@ -177,7 +175,6 @@ _cmd_install() {
 		local fish_config="$fish_config_dir/config.fish"
 		if ! grep -qxF 'source ~/.config/fish/termeric_fish' "$fish_config" 2>/dev/null; then
 			{
-				echo ""
 				echo "# termeric — golden prompt"
 				echo 'source ~/.config/fish/termeric_fish'
 			} >>"$fish_config"
@@ -227,8 +224,13 @@ _cmd_uninstall() {
 	# Remove source lines from bash/zsh
 	for rc_file in "$HOME/.bashrc" "$HOME/.zshrc"; do
 		if [ -f "$rc_file" ]; then
-			sed -i.bak '/# termeric — golden prompt/,+4d' "$rc_file" 2>/dev/null ||
-				sed -i '' '/# termeric — golden prompt/,+4d' "$rc_file" 2>/dev/null || true
+			# Remove blank line + block (handles old accumulated blanks)
+			sed -i.bak '$!{ /^$/{ N; /\n# termeric — golden prompt/d; P; D; }; }' "$rc_file" 2>/dev/null ||
+				sed -i '' '$!{ /^$/{ N; /\n# termeric — golden prompt/d; P; D; }; }' "$rc_file" 2>/dev/null || true
+			rm -f "${rc_file}.bak"
+			# Remove block without leading blank (clean installs)
+			sed -i.bak '/# termeric — golden prompt/,+3d' "$rc_file" 2>/dev/null ||
+				sed -i '' '/# termeric — golden prompt/,+3d' "$rc_file" 2>/dev/null || true
 			rm -f "${rc_file}.bak"
 		fi
 	done
@@ -237,8 +239,13 @@ _cmd_uninstall() {
 	local fish_config_dir="$HOME/.config/fish"
 	rm -f "$fish_config_dir/termeric_fish"
 	if [ -f "$fish_config_dir/config.fish" ]; then
-		sed -i.bak '/# termeric — golden prompt/,+2d' "$fish_config_dir/config.fish" 2>/dev/null ||
-			sed -i '' '/# termeric — golden prompt/,+2d' "$fish_config_dir/config.fish" 2>/dev/null || true
+		# Remove blank line + block (handles old accumulated blanks)
+		sed -i.bak '$!{ /^$/{ N; /\n# termeric — golden prompt/d; P; D; }; }' "$fish_config_dir/config.fish" 2>/dev/null ||
+			sed -i '' '$!{ /^$/{ N; /\n# termeric — golden prompt/d; P; D; }; }' "$fish_config_dir/config.fish" 2>/dev/null || true
+		rm -f "${fish_config_dir}/config.fish.bak"
+		# Remove block without leading blank (clean installs)
+		sed -i.bak '/# termeric — golden prompt/,+1d' "$fish_config_dir/config.fish" 2>/dev/null ||
+			sed -i '' '/# termeric — golden prompt/,+1d' "$fish_config_dir/config.fish" 2>/dev/null || true
 		rm -f "${fish_config_dir}/config.fish.bak"
 	fi
 

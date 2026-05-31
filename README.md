@@ -59,7 +59,7 @@ Set these in your shell config **before** sourcing termeric:
 | `PROMPT_COLOR_MODE` | `on` | Powerline mode (`on`) or colored text only (`off`) |
 | `PROMPT_EXIT_CODE` | `on` | Show ✓/✗ exit code indicator |
 | `PROMPT_CMD_TIME` | `off` | Show command duration when ≥2s |
-| `PROMPT_USER_HOST` | `on` | Show user@host segment |
+| `PROMPT_USER_HOST` | `off` | Show user@host segment |
 
 **bash/zsh** (in `~/.bashrc` or `~/.zshrc`):
 

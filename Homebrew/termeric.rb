@@ -52,7 +52,7 @@ class Termeric < Formula
         PROMPT_COLOR_MODE=on   Powerline mode: on (default) or off (colored text only)
         PROMPT_EXIT_CODE=on   Exit indicator (default: on)
         PROMPT_CMD_TIME=on    Command duration (default: off)
-        PROMPT_USER_HOST=on   Show user@host (default: on)
+        PROMPT_USER_HOST=off  Show user@host (default: off)
     EOS
   end
 

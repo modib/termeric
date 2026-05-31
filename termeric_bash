@@ -4,8 +4,8 @@
 # Configuration (set before sourcing):
 #   PROMPT_COLOR_MODE=on   Powerline mode: on (default) or off (colored text only)
 #   PROMPT_EXIT_CODE=on   Show check/cross exit code indicator (default: on)
-#   PROMPT_CMD_TIME=on    Show command duration when >=2s       (default: off)
-#   PROMPT_USER_HOST=on   Show user@host segment                (default: on)
+#   PROMPT_CMD_TIME=off   Show command duration when >=2s       (default: off)
+#   PROMPT_USER_HOST=off  Show user@host segment                (default: off)
 
 # ── Term detection (once) ──────────────────────────────────────
 case "$TERM" in
@@ -193,7 +193,7 @@ __termeric_ps1() {
 
             # Line 2: leading arrow + prompt char + trailing arrow
             if [ -n "$arrow" ]; then
-                prompt_sep="${BG_PRM}${ARROW_BLACK}${PSEP}${B}${TXT_BG_LIT} \$ ${R}${ARROW_OK}${PSEP}${R}"
+                prompt_sep="${BG_PRM}${ARROW_BLACK}${PSEP}${B}${TXT_BG_LIT} \$ ${R}${ARROW_OK}${PSEP} ${R}"
             else
                 prompt_sep="\$ "
             fi

@@ -4,12 +4,14 @@
 # Configuration (set before sourcing):
 #   set -g PROMPT_COLOR_MODE on   Powerline mode: on (default) or off (colored text only)
 #   set -g PROMPT_EXIT_CODE on   Exit indicator (default: on)
-#   set -g PROMPT_CMD_TIME on    Command duration >=2s (default: off)
+#   set -g PROMPT_CMD_TIME off   Command duration >=2s (default: off)
+#   set -g PROMPT_USER_HOST off  Show user@host segment  (default: off)
 
 # ── Defaults ────────────────────────────────────────────────────
 set -q PROMPT_COLOR_MODE; or set -g PROMPT_COLOR_MODE on
 set -q PROMPT_EXIT_CODE; or set -g PROMPT_EXIT_CODE on
 set -q PROMPT_CMD_TIME; or set -g PROMPT_CMD_TIME off
+set -q PROMPT_USER_HOST; or set -g PROMPT_USER_HOST off
 
 # ── Term detection (once) ──────────────────────────────────────
 switch $TERM
@@ -27,8 +29,15 @@ switch $TERM
         set -g _tmerm_has_title no
 end
 
-# ── Color definitions (once) ──────────────────────────────────
-if test "$_tmerm_color" = yes
+# ── Hostname cache (one fork at source time) ────────────────────
+set -g _tmerm_hostname (hostname -s 2>/dev/null; or hostname 2>/dev/null)
+
+# ── Color definitions (re-evaluated when mode changes) ──────────
+function __tmerm_init_colors
+    set -q _tmerm_color_mode; or set -g _tmerm_color_mode ""
+    test "$PROMPT_COLOR_MODE" != "$_tmerm_color_mode"; or return
+    set -g _tmerm_color_mode "$PROMPT_COLOR_MODE"
+
     # Powerline backgrounds
     set -g BG_OK      (set_color -b 00D200)
     set -g BG_FAIL    (set_color -b DC3232)
@@ -65,13 +74,19 @@ if test "$_tmerm_color" = yes
     # Powerline separator
     set -g PSEP 
     set -g PSEP_LEFT 
+end
 
+# Run once at startup
+if test "$_tmerm_color" = yes
+    set -g _tmerm_color_mode ""
+    __tmerm_init_colors
 end
 
 # ── Command duration tracking ──────────────────────────────────
 set -g __tmerm_timer 0
 
 function __tmerm_cmd_start --on-event fish_preexec
+    test "$PROMPT_CMD_TIME" != off; or return
     set -g __tmerm_timer (date +%s)
 end
 
@@ -169,10 +184,11 @@ function fish_prompt
 
     # Window title
     if test "$_tmerm_has_title" = yes
-        set data "\033]0;"(whoami)"@"(hostname)": "(pwd)"\a"
+        set data "\033]0;$USER@$_tmerm_hostname: "(pwd)"\a"
     end
 
     if test "$_tmerm_color" = yes
+        __tmerm_init_colors
         if test "$PROMPT_COLOR_MODE" != off
             # ── POWERLINE MODE ──
 
@@ -188,13 +204,15 @@ function fish_prompt
             end
 
             # Session
-            if test -n "$arrow"
-                set data "$data$BG_USER$arrow$PSEP$R$BG_USER$TXT_BG"
-            else
-                set data "$data$BG_USER$TXT_BG"
+            if test "$PROMPT_USER_HOST" != off
+                if test -n "$arrow"
+                    set data "$data$BG_USER$arrow$PSEP$R$BG_USER$TXT_BG"
+                else
+                    set data "$data$BG_USER$TXT_BG"
+                end
+                set data "$data $USER@$_tmerm_hostname $R"
+                set arrow "$ARROW_USER"
             end
-            set data "$data "(whoami)"@"(hostname)" $R"
-            set arrow "$ARROW_USER"
 
             # Path
             set data "$data$BG_PATH$arrow$PSEP$R$BG_PATH$TXT_BG_LIT"
@@ -229,7 +247,7 @@ function fish_prompt
 
             # Line 2: leading arrow + prompt char + trailing arrow
             if test -n "$arrow"
-                printf '%b' "$BG_PRM$ARROW_BLACK$PSEP$TXT_BG_LIT %# $R$ARROW_OK$PSEP$R"
+                printf '%b' "$BG_PRM$ARROW_BLACK$PSEP$TXT_BG_LIT %# $R$ARROW_OK$PSEP $R"
             else
                 printf '%s' '$ '
             end
@@ -244,7 +262,9 @@ function fish_prompt
                 end
             end
 
-            set data "$data$TXT_USER"(whoami)"@"(hostname)"$R "
+            if test "$PROMPT_USER_HOST" != off
+                set data "$data$TXT_USER$USER@$_tmerm_hostname$R "
+            end
             set data "$data$TXT_PATH"(prompt_pwd)"$R"
 
             set -l git_info (__tmerm_git_info 2>/dev/null)
@@ -264,7 +284,11 @@ function fish_prompt
         end
     else
         # ── MONOCHROME MODE ──
-        set data (whoami)"@"(hostname)":"(prompt_pwd)
+        if test "$PROMPT_USER_HOST" != off
+            set data "$USER@$_tmerm_hostname:"(prompt_pwd)
+        else
+            set data (prompt_pwd)
+        end
 
         set -l git_info (__tmerm_git_info 2>/dev/null)
         if test -n "$git_info"
