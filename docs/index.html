@@ -167,16 +167,6 @@
             margin-right: -12px;
         }
 
-        .segment:first-child {
-            padding-left: 4px;
-            clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 50%, calc(100% - 12px) 100%, 0 100%);
-        }
-
-        .segment:first-child::before {
-            content: "";
-            color: #1E1E1E;
-        }
-
         .segment:last-child {
             clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
         }
@@ -193,8 +183,13 @@
             margin-right: 0;
         }
 
-        .segment-prompt {
-            clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 50%, calc(100% - 12px) 100%, 0 100%);
+
+        .leading-arrow {
+            width: 12px;
+            align-self: stretch;
+            flex-shrink: 0;
+            background: #1E1E1E;
+            clip-path: polygon(0 0, 100% 50%, 0 100%);
             margin-right: -12px;
         }
 
@@ -443,6 +438,7 @@
                 </div>
                 <div class="terminal-body">
                     <div class="prompt-powerline">
+                        <span class="leading-arrow"></span>
                         <span class="segment segment-ok"> ✓ </span>
                         <span class="segment segment-user"> user@host </span>
                         <span class="segment segment-path"> ~/projects/termeric </span>
@@ -451,6 +447,7 @@
                         <span class="trailing-sep"></span>
                     </div>
                     <div class="prompt-powerline">
+                        <span class="leading-arrow"></span>
                         <span class="segment segment-prompt"> % </span>
                         <span class="trailing-sep-green"></span>
                     </div>
