@@ -212,7 +212,7 @@ function fish_prompt
                 set -l duration (math (date +%s) - $__tmerm_timer)
                 if test $duration -ge 2
                     set data "$data$BG_TIME$arrow$PSEP$R$BG_TIME$TXT_BG"
-                    set data "$data ${duration}s $R"
+                    set data "$data $duration s $R"
                     set arrow "$ARROW_TIME"
                 end
             end
