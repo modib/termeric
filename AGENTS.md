@@ -39,15 +39,19 @@ All features controlled via `on`/`off` values. Backward compat: `1`/`0` also acc
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
-| `PROMPT_COLOR_MODE` | `on` | Powerline mode (`on`) or colored text only (`off`) |
-| `PROMPT_EXIT_CODE` | `on` | Show ✓/✗ exit code indicator |
-| `PROMPT_CMD_TIME` | `off` | Show command duration when ≥2s |
-| `PROMPT_USER_HOST` | `off` | Show user@host segment |
+| `PROMPT_COLOR` | `on` | Master color switch (`on`/`off`) |
+| `PROMPT_STYLE` | `0` | Prompt style: `0`=powerline, `1`=basename, `2`=abbreviated, `3`=full path, `4`=long text |
+| `PROMPT_SHOW_USER` | `on` | Show user@host segment |
+| `PROMPT_SHOW_EXIT` | `on` | Show exit code on failure |
+| `PROMPT_SHOW_DIR` | `on` | Show directory path |
+| `PROMPT_SHOW_SSH` | `on` | Show SSH indicator when connected |
+| `PROMPT_SHOW_TIME` | `off` | Show command duration when ≥2s |
 
 ### Git status caching
-- Uses `.git/.termeric_cache` and `.git/.termeric_result`
+- Uses `~/.cache/termeric/<repo-hash>.{cache,result}` (XDG-compliant)
 - Cache key: mtime of `.git/HEAD` + `.git/index`
 - Invalidated automatically on commit, checkout, etc.
+- Old per-repo cache files (`.git/.termeric_*`) auto-cleaned on cache write
 
 ### Adding new features
 1. Add in all 3 shell files (`termeric_bash`, `termeric_zsh`, `termeric_fish`)
@@ -63,7 +67,8 @@ All features controlled via `on`/`off` values. Backward compat: `1`/`0` also acc
 - Run `bash -n bin/termeric` for CLI syntax check
 - Run `./bin/termeric doctor` to verify system readiness
 - Source the file in a new shell and verify the prompt renders
-- Verify both powerline mode (`PROMPT_COLOR_MODE=on`) and colored text mode (`PROMPT_COLOR_MODE=off`)
+- Verify powerline mode (`PROMPT_STYLE=0`) and text modes (`PROMPT_STYLE=1`, `2`, `3`, `4`)
+- Verify monochrome mode (`PROMPT_COLOR=off`)
 
 ### Versioning
 - Update `VERSION` file before release

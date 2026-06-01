@@ -4,7 +4,7 @@ set -euo pipefail
 DOTFILES_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 # ── Version ─────────────────────────────────────────────────────
-TERMERIC_VERSION="${TERMERIC_VERSION:-1.0.0}"
+TERMERIC_VERSION="${TERMERIC_VERSION:-1.1.0}"
 
 # ── Colors ──────────────────────────────────────────────────────
 if [ -t 1 ]; then
@@ -38,9 +38,12 @@ Options:
   --help           Show this message
 
 Environment variables:
-  PROMPT_COLOR_MODE=on   Powerline mode: on (default) or off (colored text only)
-  PROMPT_EXIT_CODE=on Exit indicator (default: on)
-  PROMPT_CMD_TIME=on  Command duration (default: off)
+  PROMPT_COLOR=on        Master color switch: on (default) or off
+  PROMPT_SHOW_USER=on    Show user@host segment (default: on)
+  PROMPT_SHOW_EXIT=on    Show exit code on failure (default: on)
+  PROMPT_SHOW_DIR=on     Show directory path (default: on)
+  PROMPT_SHOW_SSH=on     Show SSH indicator (default: on)
+  PROMPT_SHOW_TIME=off   Show command duration (default: off)
 EOF
 }
 
@@ -157,7 +160,7 @@ install_font() {
 		_download_font "$HOME/.local/share/fonts" && fc-cache -f
 	fi
 
-	_ok "Font installed. Set your terminal to use 'MesloLGS Nerd Font'."
+	_ok "Font installed. Set your terminal to use 'MesloLGL Nerd Font'."
 }
 
 # ── Uninstall ───────────────────────────────────────────────────

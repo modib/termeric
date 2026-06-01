@@ -2,10 +2,13 @@
 # Source: [ -f ~/.termeric_bash ] && . ~/.termeric_bash
 #
 # Configuration (set before sourcing):
-#   PROMPT_COLOR_MODE=on   Powerline mode: on (default) or off (colored text only)
-#   PROMPT_EXIT_CODE=on   Show check/cross exit code indicator (default: on)
-#   PROMPT_CMD_TIME=off   Show command duration when >=2s       (default: off)
-#   PROMPT_USER_HOST=off  Show user@host segment                (default: off)
+#   PROMPT_COLOR=on        Master color switch: on (default) or off
+#   PROMPT_STYLE=0         Prompt style: 0=powerline, 1=basename, 2=abbreviated, 3=full path, 4=long text (default: 0)
+#   PROMPT_SHOW_USER=on    Show user@host segment
+#   PROMPT_SHOW_EXIT=on    Show exit code on failure
+#   PROMPT_SHOW_DIR=on     Show directory path
+#   PROMPT_SHOW_SSH=on     Show SSH indicator when connected
+#   PROMPT_SHOW_TIME=off   Show command duration when >=2s
 
 # ── Term detection (once) ──────────────────────────────────────
 case "$TERM" in
@@ -15,38 +18,70 @@ esac
 # ── Window title flag (evaluated once at source time) ──────────
 case "$TERM" in xterm*|rxvt*) _tmerm_has_title=yes;; esac
 
-# ── Color definitions (re-evaluated when mode changes) ──────────
+# ── Validate PROMPT_STYLE ───────────────────────────────────────
+case "${PROMPT_STYLE:-0}" in
+    0|1|2|3|4) ;;
+    *)
+        echo "termeric: invalid PROMPT_STYLE=${PROMPT_STYLE:-empty}, defaulting to 1" >&2
+        echo "  Valid styles:" >&2
+        echo "    0  Powerline (background segments, arrows)" >&2
+        echo "    1  Basename only" >&2
+        echo "    2  Abbreviated path" >&2
+        echo "    3  Full path (~/project/path)" >&2
+        echo "    4  Long text prompt (user@host path git)" >&2
+        PROMPT_STYLE=1
+        ;;
+esac
+
+# ── Color definitions (runs at source time and on PROMPT_COLOR change) ──
 __tmerm_init_colors() {
-    local new_mode="${PROMPT_COLOR_MODE:-on}"
-    [ "$new_mode" = "$_tmerm_color_mode" ] && return
-    _tmerm_color_mode="$new_mode"
+    if [ "${PROMPT_COLOR:-on}" != "off" ]; then
+        E=$'\e'
+        R="\[${E}[0m\]"
+        B="\[${E}[1m\]"
 
-    E=$'\e'
-    R="\[${E}[0m\]"   B="\[${E}[1m\]"
+        BG_OK="\[${E}[48;2;60;60;60m\]";    ARROW_OK="\[${E}[38;2;0;210;0m\]"
+        BG_FAIL="\[${E}[48;2;60;60;60m\]";  ARROW_FAIL="\[${E}[38;2;220;50;50m\]"
+        BG_USER="\[${E}[48;2;50;100;220m\]";ARROW_USER="\[${E}[38;2;50;100;220m\]"
+        BG_PATH="\[${E}[48;2;0;190;190m\]"; ARROW_PATH="\[${E}[38;2;0;190;190m\]"
+        BG_GIT="\[${E}[48;2;220;180;0m\]";  ARROW_GIT="\[${E}[38;2;220;180;0m\]"
+        BG_TIME="\[${E}[48;2;200;50;200m\]";ARROW_TIME="\[${E}[38;2;200;50;200m\]"
+        ARROW_BLACK="\[${E}[38;2;30;30;30m\]"
+        ARROW_DARK="\[${E}[38;2;60;60;60m\]"
+        TXT_BG="\[${E}[97m\]"
+        TXT_BG_LIT="\[${E}[30m\]"
 
-    BG_OK="\[${E}[48;2;0;210;0m\]";     ARROW_OK="\[${E}[38;2;0;210;0m\]"
-    BG_FAIL="\[${E}[48;2;220;50;50m\]"; ARROW_FAIL="\[${E}[38;2;220;50;50m\]"
-    BG_USER="\[${E}[48;2;50;100;220m\]";ARROW_USER="\[${E}[38;2;50;100;220m\]"
-    BG_PATH="\[${E}[48;2;0;190;190m\]"; ARROW_PATH="\[${E}[38;2;0;190;190m\]"
-    BG_GIT="\[${E}[48;2;220;180;0m\]";  ARROW_GIT="\[${E}[38;2;220;180;0m\]"
-    BG_TIME="\[${E}[48;2;200;50;200m\]";ARROW_TIME="\[${E}[38;2;200;50;200m\]"
-    BG_PRM="\[${E}[48;2;0;210;0m\]";   ARROW_PRM="\[${E}[38;2;0;210;0m\]"
-    ARROW_BLACK="\[${E}[38;2;30;30;30m\]"
-    TXT_BG_DARK="\[${E}[97m\]"
-    TXT_BG_LIT="\[${E}[30m\]"
-
-    TXT_OK="\[${E}[32m\]"
-    TXT_FAIL="\[${E}[1;31m\]"
-    TXT_USER="\[${E}[32m\]"
-    TXT_PATH="\[${E}[94m\]"
-    TXT_GIT="\[${E}[33m\]"
-    TXT_TIME="\[${E}[96m\]"
-    PSEP=
-    PSEP_LEFT=
+        TXT_OK="\[${E}[32m\]"
+        TXT_FAIL="\[${E}[1;31m\]"
+        RCOLOR="\[${E}[0m\]"
+        PROMPT_SEP_GREEN="\[\033[32m\]"
+        TXT_USER="\[${E}[32m\]"
+        TXT_PATH="\[${E}[94m\]"
+        TXT_GIT="\[${E}[33m\]"
+        TXT_TIME="\[${E}[96m\]"
+        PSEP=
+        PSEP_LEFT=
+    else
+        R=""
+        B=""
+        BG_OK="";    ARROW_OK=""
+        BG_FAIL="";  ARROW_FAIL=""
+        BG_USER="";  ARROW_USER=""
+        BG_PATH="";  ARROW_PATH=""
+        BG_GIT="";   ARROW_GIT=""
+        BG_TIME="";  ARROW_TIME=""
+        ARROW_BLACK=""; ARROW_DARK=""
+        TXT_BG="";   TXT_BG_LIT=""
+        TXT_OK="";   TXT_FAIL=""
+        RCOLOR=""
+        PROMPT_SEP_GREEN=""
+        TXT_USER=""; TXT_PATH=""
+        TXT_GIT="";  TXT_TIME=""
+        PSEP="";     PSEP_LEFT=""
+    fi
 }
 
 if [ "$_tmerm_color" = yes ]; then
-    _tmerm_color_mode=""
     __tmerm_init_colors
 fi
 
@@ -54,6 +89,35 @@ fi
 if [ "$_tmerm_color" = yes ]; then
     __tmerm_timer=$SECONDS
 fi
+
+# ── Path shortening (for PROMPT_STYLE) ─────────────────────────
+__tmerm_shortened_path() {
+    local level=${1:-0}
+    case "$level" in
+        0|3) printf '%s' "${PWD/#$HOME/~}" ;;
+        1) basename "$PWD" ;;
+        2)
+            local p="${PWD/#$HOME/~}"
+            local last="${p##*/}"
+            local dir="${p%/*}"
+            if [ "$dir" = "$p" ] || [ -z "$dir" ]; then
+                printf '%s' "$p"
+                return
+            fi
+            local prefix=""
+            case "$dir" in
+                ~/*) prefix="~/" ; dir="${dir#~/}" ;;
+                /*) prefix="/" ; dir="${dir#/}" ;;
+            esac
+            local out="" part
+            local IFS='/'
+            for part in $dir; do
+                out+="${part:0:1}/"
+            done
+            printf '%s%s' "$prefix" "${out}${last}"
+            ;;
+    esac
+}
 
 # ── Git info via cache (avoids fork when unchanged) ────────────
 __tmerm_git_info() {
@@ -65,9 +129,17 @@ __tmerm_git_info() {
     local git_dir
     git_dir=$(git rev-parse --git-dir 2>/dev/null) || return
 
-    local cache_file="$git_dir/.termeric_cache"
     local head_file="$git_dir/HEAD"
     local index_file="$git_dir/index"
+
+    # Cache dir (XDG compliant, per-repo via md5 hash of toplevel path)
+    local repo_hash
+    repo_hash=$(git rev-parse --show-toplevel 2>/dev/null | md5 -q 2>/dev/null || git rev-parse --show-toplevel 2>/dev/null | md5sum | cut -d' ' -f1 2>/dev/null)
+    [ -z "$repo_hash" ] && return
+    local cache_dir="${XDG_CACHE_HOME:-$HOME/.cache}/termeric"
+    mkdir -p "$cache_dir" 2>/dev/null
+    local cache_file="$cache_dir/$repo_hash.cache"
+    local result_file="$cache_dir/$repo_hash.result"
 
     # Check cache validity: HEAD and index mtime must match
     if [ -f "$cache_file" ]; then
@@ -78,9 +150,8 @@ __tmerm_git_info() {
         cur_index=$(stat -f '%m' "$index_file" 2>/dev/null || stat -c '%Y' "$index_file" 2>/dev/null)
         if [ "$cur_head" = "$cached_head" ] && [ "$cur_index" = "$cached_index" ]; then
             # Cache hit — read stored result
-            local cache_result="$git_dir/.termeric_result"
-            if [ -f "$cache_result" ]; then
-                cat "$cache_result"
+            if [ -f "$result_file" ]; then
+                cat "$result_file"
                 return
             fi
         fi
@@ -108,13 +179,13 @@ __tmerm_git_info() {
     [ -z "$branch" ] && return
 
     # Build output
-    local out="$branch"
+    local out=" $branch"
     local details=""
-    [ "$ahead" -gt 0 ]   && details+="↑$ahead "
-    [ "$behind" -gt 0 ]  && details+="↓$behind "
-    [ "$staged" -gt 0 ]  && details+="+$staged "
-    [ "$unstaged" -gt 0 ] && details+="~$unstaged "
-    [ "$untracked" -gt 0 ] && details+="?$untracked "
+    [ "$ahead" -gt 0 ]   && details+=" $ahead "
+    [ "$behind" -gt 0 ]  && details+=" $behind "
+    [ "$staged" -gt 0 ]  && details+=" $staged "
+    [ "$unstaged" -gt 0 ] && details+=" $unstaged "
+    [ "$untracked" -gt 0 ] && details+=" $untracked "
     details="${details% }"
     [ -n "$details" ] && out+=" $details"
 
@@ -125,125 +196,197 @@ __tmerm_git_info() {
     cur_head=$(stat -f '%m' "$head_file" 2>/dev/null || stat -c '%Y' "$head_file" 2>/dev/null)
     cur_index=$(stat -f '%m' "$index_file" 2>/dev/null || stat -c '%Y' "$index_file" 2>/dev/null)
     printf '%s %s\n' "$cur_head" "$cur_index" > "$cache_file"
-    printf '%s' "$out" > "$git_dir/.termeric_result"
+    printf '%s' "$out" > "$result_file"
+    # Clean up old per-repo cache files
+    rm -f "$git_dir/.termeric_cache" "$git_dir/.termeric_result" 2>/dev/null
     [[ -n "$__tmerm_xtrace" ]] && set -x
 }
 
 # ── Prompt builder ──────────────────────────────────────────────
 __termeric_ps1() {
+    local rc=$?
     local __tmerm_xtrace=
     [[ -o xtrace ]] && __tmerm_xtrace=1 && set +x
-    local rc=$?
     local data=""
     local arrow=""
     local prompt_sep=""
+    local style="${PROMPT_STYLE:-0}"
+
+    # Runtime style validation
+    case "$style" in
+        0|1|2|3|4) ;;
+        *)
+            if [ -z "${_tmerm_style_warned:-}" ]; then
+                echo "termeric: invalid PROMPT_STYLE=${PROMPT_STYLE:-empty}, defaulting to 1" >&2
+                echo "  Valid styles:" >&2
+                echo "    0  Powerline (background segments, arrows)" >&2
+                echo "    1  Basename only" >&2
+                echo "    2  Abbreviated path" >&2
+                echo "    3  Full path (~/project/path)" >&2
+                echo "    4  Long text prompt (user@host path git)" >&2
+                _tmerm_style_warned=1
+            fi
+            style=1
+            ;;
+    esac
 
     # Window title (only if terminal supports it)
     [ "$_tmerm_has_title" = yes ] && data+="\[\e]0;\u@\h: \w\a\]"
 
+    # Initialize colors if terminal supports it
     if [ "$_tmerm_color" = yes ]; then
         __tmerm_init_colors
-        if [ "${PROMPT_COLOR_MODE:-on}" != "off" ]; then
-            # ── POWERLINE MODE ──
-            local psep_left=$PSEP_LEFT
+    fi
 
-            # Exit code
-            if [ "${PROMPT_EXIT_CODE-${_tmerm_default_exit:-on}}" != "off" ]; then
-                if [ "$rc" -eq 0 ]; then
-                    data+="${BG_OK}${ARROW_BLACK}${PSEP}${B}${TXT_BG_LIT} ✓ ${R}"
-                    arrow="${ARROW_OK}"
-                else
-                    data+="${BG_FAIL}${ARROW_BLACK}${PSEP}${B}${TXT_BG_DARK} ✗ $rc ${R}"
-                    arrow="${ARROW_FAIL}"
-                fi
+    # Style 4: long text prompt without background colors
+    if [ "$style" = "4" ]; then
+        if [ "$rc" -ne 0 ] && [ "${PROMPT_SHOW_EXIT:-on}" != "off" ]; then
+            data+="${TXT_FAIL}✘ $rc${RCOLOR} "
+        fi
+        if [ "${PROMPT_SHOW_USER:-on}" != "off" ]; then
+            if [ "${PROMPT_SHOW_SSH:-on}" != "off" ] && [ -n "$SSH_CONNECTION" ]; then
+                data+="${TXT_USER}\u@ssh:\h${RCOLOR} "
+            else
+                data+="${TXT_USER}\u@\h${RCOLOR} "
             fi
+        fi
+        if [ "${PROMPT_SHOW_DIR:-on}" != "off" ]; then
+            data+="${TXT_PATH}\w${RCOLOR}"
+        fi
+        local git_info
+        git_info=$(__tmerm_git_info 2>/dev/null)
+        [ -n "$git_info" ] && data+=" ${TXT_GIT}$git_info${RCOLOR}"
+        if [ "${PROMPT_SHOW_TIME:-off}" != "off" ] && [ -n "$__tmerm_timer" ]; then
+            local duration=$(( SECONDS - __tmerm_timer ))
+            [ "$duration" -ge 2 ] && data+=" ${TXT_TIME}[${duration}s]${RCOLOR}"
+        fi
+        prompt_sep="${PROMPT_SEP_GREEN}❯❯ ${RCOLOR}"
+        PS1="${data}"$'\n'"${prompt_sep}"
+        __tmerm_timer=$SECONDS
+        [[ -n "$__tmerm_xtrace" ]] && set -x
+        return "$rc"
+    fi
 
-            # Session
-            if [ "${PROMPT_USER_HOST:-off}" != "off" ]; then
-                if [ -n "$arrow" ]; then
-                    data+="${BG_USER}${arrow}${PSEP}${R}${BG_USER}${B}${TXT_BG_DARK}"
-                else
-                    data+="${BG_USER}${B}${TXT_BG_DARK}"
-                fi
+    # Styles 1, 2: shortened path prompts
+    if [ "$style" != "0" ]; then
+        local spath
+        spath=$(__tmerm_shortened_path "$style")
+        if [ "$rc" -ne 0 ] && [ "${PROMPT_SHOW_EXIT:-on}" != "off" ]; then
+            data+="${TXT_FAIL}✘ $rc${RCOLOR} "
+        fi
+        if [ "${PROMPT_SHOW_DIR:-on}" != "off" ]; then
+            data+="${TXT_PATH}  ${spath}${RCOLOR}"
+        else
+            data+="${TXT_PATH}${spath}${RCOLOR}"
+        fi
+        local git_info
+        git_info=$(__tmerm_git_info 2>/dev/null)
+        [ -n "$git_info" ] && data+=" ${TXT_GIT}$git_info${RCOLOR}"
+        prompt_sep="${PROMPT_SEP_GREEN}❯❯ ${RCOLOR}"
+        PS1="${data}"$'\n'"${prompt_sep}"
+        __tmerm_timer=$SECONDS
+        [[ -n "$__tmerm_xtrace" ]] && set -x
+        return "$rc"
+    fi
+
+    # Style 0: powerline or monochrome
+    if [ "$_tmerm_color" = yes ] && [ "${PROMPT_COLOR:-on}" != "off" ]; then
+        # ── POWERLINE MODE ──
+        local psep=$PSEP
+
+        # Exit code (only show on failure) — first segment
+        if [ "$rc" -ne 0 ] && [ "${PROMPT_SHOW_EXIT:-on}" != "off" ]; then
+            data+="${BG_FAIL}${ARROW_DARK} ${psep}${R}${BG_FAIL}${TXT_FAIL} ✘ $rc ${R}"
+            arrow="${ARROW_DARK}"
+        fi
+
+        # Session
+        if [ "${PROMPT_SHOW_USER:-on}" != "off" ]; then
+            if [ -n "$arrow" ]; then
+                data+="${BG_USER}${arrow}${psep}${R}${BG_USER}${B}${TXT_BG}"
+            else
+                data+="${BG_FAIL}${ARROW_DARK} ${psep}${R}${BG_USER}${B}${TXT_BG}"
+            fi
+            if [ "${PROMPT_SHOW_SSH:-on}" != "off" ] && [ -n "$SSH_CONNECTION" ]; then
+                data+=" \u@ssh:\h ${R}"
+            else
                 data+=" \u@\h ${R}"
-                arrow="${ARROW_USER}"
             fi
+            arrow="${ARROW_USER}"
+        fi
 
-            # Path
-            data+="${BG_PATH}${arrow}${PSEP}${R}${BG_PATH}${B}${TXT_BG_LIT}"
+        # Path
+        if [ "${PROMPT_SHOW_DIR:-on}" != "off" ]; then
+            if [ -n "$arrow" ]; then
+                data+="${BG_PATH}${arrow}${psep}${R}${BG_PATH}${B}${TXT_BG_LIT}"
+            else
+                data+="${BG_FAIL}${ARROW_DARK} ${psep}${R}${BG_PATH}${B}${TXT_BG_LIT}"
+            fi
             data+=" \w ${R}"
             arrow="${ARROW_PATH}"
-
-            # Git
-            local git_info
-            git_info=$(__tmerm_git_info 2>/dev/null)
-            if [ -n "$git_info" ]; then
-                data+="${BG_GIT}${arrow}${PSEP}${R}${BG_GIT}${B}${TXT_BG_LIT}"
-                data+=" $git_info ${R}"
-                arrow="${ARROW_GIT}"
-            fi
-
-            # Timing
-            if [ "${PROMPT_CMD_TIME:-off}" != "off" ] && [ -n "$__tmerm_timer" ]; then
-                local duration=$(( SECONDS - __tmerm_timer ))
-                if [ "$duration" -ge 2 ]; then
-                    data+="${BG_TIME}${arrow}${PSEP}${R}${BG_TIME}${B}${TXT_BG_DARK}"
-                    data+=" ${duration}s ${R}"
-                    arrow="${ARROW_TIME}"
-                fi
-            fi
-
-            # Trailing separator
-            [ -n "$arrow" ] && data+="${arrow}${PSEP}${R}"
-
-            # Line 2: leading arrow + prompt char + trailing arrow
-            if [ -n "$arrow" ]; then
-                prompt_sep="${BG_PRM}${ARROW_BLACK}${PSEP}${B}${TXT_BG_LIT} \$ ${R}${ARROW_OK}${PSEP} ${R}"
-            else
-                prompt_sep="\$ "
-            fi
-        else
-            # ── NORMAL MODE ──
-
-            # Exit code
-            if [ "${PROMPT_EXIT_CODE-${_tmerm_default_exit:-on}}" != "off" ]; then
-                if [ "$rc" -eq 0 ]; then
-                    data+="${TXT_OK}✓${R} "
-                else
-                    data+="${TXT_FAIL}✗ $rc${R} "
-                fi
-            fi
-
-            data+="${TXT_USER}\u@\h${R} "
-            data+="${TXT_PATH}\w${R}"
-
-            local git_info
-            git_info=$(__tmerm_git_info 2>/dev/null)
-            [ -n "$git_info" ] && data+=" ${TXT_GIT}($git_info)${R}"
-
-            if [ "${PROMPT_CMD_TIME:-off}" != "off" ] && [ -n "$__tmerm_timer" ]; then
-                local duration=$(( SECONDS - __tmerm_timer ))
-                [ "$duration" -ge 2 ] && data+=" ${TXT_TIME}[${duration}s]${R}"
-            fi
-
-            prompt_sep="\$ "
         fi
+
+        # Git
+        local git_info
+        git_info=$(__tmerm_git_info 2>/dev/null)
+        if [ -n "$git_info" ]; then
+            if [ -n "$arrow" ]; then
+                data+="${BG_GIT}${arrow}${psep}${R}${BG_GIT}${B}${TXT_BG_LIT}"
+            else
+                data+="${BG_FAIL}${ARROW_DARK} ${psep}${R}${BG_GIT}${B}${TXT_BG_LIT}"
+            fi
+            data+=" $git_info ${R}"
+            arrow="${ARROW_GIT}"
+        fi
+
+        # Timing
+        if [ "${PROMPT_SHOW_TIME:-off}" != "off" ] && [ -n "$__tmerm_timer" ]; then
+            local duration=$(( SECONDS - __tmerm_timer ))
+            if [ "$duration" -ge 2 ]; then
+                if [ -n "$arrow" ]; then
+                    data+="${BG_TIME}${arrow}${psep}${R}${BG_TIME}${B}${TXT_BG}"
+                else
+                    data+="${BG_FAIL}${ARROW_DARK} ${psep}${R}${BG_TIME}${B}${TXT_BG}"
+                fi
+                data+=" ${duration}s ${R}"
+                arrow="${ARROW_TIME}"
+            fi
+        fi
+
+        # Trailing separator
+        [ -n "$arrow" ] && data+="${arrow}${psep}${R}"
+
+        prompt_sep="${PROMPT_SEP_GREEN}❯❯ ${RCOLOR}"
     else
         # ── MONOCHROME MODE ──
-        data+="\u@\h: \w"
+        # data already has window title from above
+
+        if [ "$rc" -ne 0 ] && [ "${PROMPT_SHOW_EXIT:-on}" != "off" ]; then
+            data="✘ $rc $data"
+        fi
+
+        if [ "${PROMPT_SHOW_USER:-on}" != "off" ]; then
+            if [ "${PROMPT_SHOW_SSH:-on}" != "off" ] && [ -n "$SSH_CONNECTION" ]; then
+                data+="\u@ssh:\h:"
+            else
+                data+="\u@\h:"
+            fi
+        fi
+
+        if [ "${PROMPT_SHOW_DIR:-on}" != "off" ]; then
+            data+="\w"
+        fi
 
         local git_info
         git_info=$(__tmerm_git_info 2>/dev/null)
         [ -n "$git_info" ] && data+=" ($git_info)"
 
-        [ "$rc" -ne 0 ] && data="[$rc] $data"
-
-        if [ "${PROMPT_CMD_TIME:-off}" != "off" ] && [ -n "$__tmerm_timer" ]; then
+        if [ "${PROMPT_SHOW_TIME:-off}" != "off" ] && [ -n "$__tmerm_timer" ]; then
             local duration=$(( SECONDS - __tmerm_timer ))
             [ "$duration" -ge 2 ] && data+=" [${duration}s]"
         fi
 
-        prompt_sep="\$ "
+        prompt_sep="❯❯ "
     fi
 
     PS1="${data}"$'\n'"${prompt_sep}"

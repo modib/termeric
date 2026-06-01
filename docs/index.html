@@ -113,9 +113,151 @@
             transform: translateY(-2px);
         }
 
-        /* Preview */
-        .preview {
+        /* Prompt Carousel */
+        .carousel-wrapper {
             margin: 60px 0;
+        }
+
+        .carousel-wrapper h2 {
+            text-align: center;
+            font-size: 36px;
+            margin-bottom: 24px;
+            color: var(--gold);
+        }
+
+        .carousel-tabs {
+            display: flex;
+            gap: 4px;
+            justify-content: center;
+            margin-bottom: 32px;
+        }
+
+        .carousel-tabs input[type="radio"] {
+            display: none;
+        }
+
+        .carousel-tabs label {
+            display: inline-block;
+            padding: 8px 20px;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-muted);
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .carousel-tabs label:hover {
+            border-color: var(--gold);
+            color: var(--gold);
+        }
+
+        .carousel-tabs input:checked + label {
+            background: rgba(220, 180, 0, 0.15);
+            border-color: var(--gold);
+            color: var(--gold);
+        }
+
+        .carousel-content > .carousel-panel {
+            display: none;
+        }
+
+        #tab-0:checked ~ .carousel-content #content-0,
+        #tab-1:checked ~ .carousel-content #content-1,
+        #tab-2:checked ~ .carousel-content #content-2,
+        #tab-3:checked ~ .carousel-content #content-3,
+        #tab-4:checked ~ .carousel-content #content-4 {
+            display: block;
+        }
+
+        .terminal-compact .terminal-body {
+            padding: 14px 20px;
+            font-size: 14px;
+            line-height: 1.6;
+            background: #0D1117;
+            font-family: 'MesloLGL Nerd Font', 'SF Mono', 'Fira Code', monospace;
+        }
+
+        .terminal-compact .style-preview {
+            font-family: 'MesloLGL Nerd Font', 'SF Mono', 'Fira Code', monospace;
+        }
+
+        .terminal-compact .text-prompt {
+            color: #E6EDF3;
+        }
+
+        .terminal-compact .text-git {
+            color: #DCB400;
+        }
+
+        /* Terminal visual styles (shared by carousel panels) */
+        .carousel-wrapper .terminal {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+        }
+
+        .carousel-wrapper .terminal-body {
+            padding: 20px 24px;
+            font-family: 'MesloLGL Nerd Font', 'SF Mono', 'Fira Code', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            background: #0D1117;
+        }
+
+        .carousel-wrapper .prompt-line {
+            white-space: nowrap;
+            line-height: 2;
+            font-size: 14px;
+        }
+
+        .carousel-wrapper .seg {
+            display: inline;
+            padding: 6px 4px 6px 0;
+            font-family: 'MesloLGL Nerd Font', 'SF Mono', 'Fira Code', monospace;
+        }
+        .carousel-wrapper .seg-lead { background: #3C3C3C; padding: 6px 0 6px 4px; }
+        .carousel-wrapper .seg-lead::before { content: ""; color: #3C3C3C; font-size: 14px; }
+        .carousel-wrapper .seg-user { background: #3264DC; color: #FFF; }
+        .carousel-wrapper .seg-path { background: #00BEBE; color: #000; }
+        .carousel-wrapper .seg-git  { background: #DCB400; color: #000; }
+
+        .carousel-wrapper .seg-user::before,
+        .carousel-wrapper .seg-path::before,
+        .carousel-wrapper .seg-git::before,
+        .carousel-wrapper .seg-lead::before,
+        .carousel-wrapper .last-arr { vertical-align: middle; }
+        .carousel-wrapper .seg-user::before { content: ""; color: #3C3C3C; font-size: 14px; }
+        .carousel-wrapper .seg-path::before { content: ""; color: #3264DC; font-size: 14px; }
+        .carousel-wrapper .seg-git::before  { content: ""; color: #00BEBE; font-size: 14px; }
+
+        .carousel-wrapper .last-arr {
+            font-family: 'MesloLGL Nerd Font', 'SF Mono', 'Fira Code', monospace;
+            font-size: 14px;
+        }
+        .carousel-wrapper .last-arr.gold { color: #DCB400; }
+
+        .carousel-wrapper .prompt-input {
+            color: #00D200;
+            font-family: 'MesloLGL Nerd Font', 'SF Mono', 'Fira Code', monospace;
+            font-size: 14px;
+        }
+
+        .carousel-wrapper .cursor {
+            display: inline-block;
+            width: 8px;
+            height: 16px;
+            background: #FFF;
+            animation: blink 1s step-end infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
         }
 
         .terminal {
@@ -126,91 +268,43 @@
             box-shadow: 0 20px 60px rgba(0,0,0,0.5);
         }
 
-        .terminal-header {
-            background: var(--border);
-            padding: 12px 16px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .terminal-dot {
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-        }
-
-        .terminal-dot.red { background: var(--red); }
-        .terminal-dot.yellow { background: var(--gold); }
-        .terminal-dot.green { background: var(--green); }
-
         .terminal-body {
             padding: 20px 24px;
-            font-family: 'MesloLGS Nerd Font', 'SF Mono', 'Fira Code', monospace;
+            font-family: 'MesloLGL Nerd Font', 'SF Mono', 'Fira Code', monospace;
             font-size: 14px;
             line-height: 1.6;
             background: #0D1117;
         }
 
-        .prompt-powerline {
-            display: flex;
-            align-items: center;
-            margin-bottom: 4px;
-        }
-
-        .segment {
-            padding: 6px 16px;
-            display: inline-flex;
-            align-items: center;
-            font-family: 'MesloLGS Nerd Font', 'SF Mono', 'Fira Code', monospace;
-            clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 50%, calc(100% - 12px) 100%, 0 100%, 12px 50%);
-            margin-right: -12px;
-        }
-
-        .segment:last-child {
-            clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
-        }
-
-        .segment-ok { background: #00D200; color: #000; }
-        .segment-user { background: #3264DC; color: #FFF; }
-        .segment-path { background: #00BEBE; color: #000; }
-        .segment-git { background: #DCB400; color: #000; }
-        .segment-time { background: #C832C8; color: #FFF; }
-        .segment-prompt { background: #00D200; color: #000; }
-
-        .segment-time {
-            clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 50%, calc(100% - 12px) 100%, 0 100%, 12px 50%);
-            margin-right: 0;
-        }
-
-
-        .leading-arrow {
-            width: 12px;
-            align-self: stretch;
-            flex-shrink: 0;
-            background: #1E1E1E;
-            clip-path: polygon(0 0, 100% 50%, 0 100%);
-            margin-right: -12px;
-        }
-
-        .trailing-sep {
-            color: #C832C8;
-            font-family: 'MesloLGS Nerd Font', 'SF Mono', 'Fira Code', monospace;
+        .prompt-line {
+            white-space: nowrap;
+            line-height: 2;
             font-size: 14px;
-            margin-left: -12px;
-        }
-        .trailing-sep::before {
-            content: "";
         }
 
-        .trailing-sep-green {
+        .seg {
+            display: inline;
+            padding: 6px 4px 6px 0;
+            font-family: 'MesloLGL Nerd Font', 'SF Mono', 'Fira Code', monospace;
+        }
+        .seg-user { background: #3264DC; color: #FFF; padding-left: 8px; }
+        .seg-path { background: #00BEBE; color: #000; }
+        .seg-git  { background: #DCB400; color: #000; }
+
+        .seg-user::before { content: ""; color: #3C3C3C; }
+        .seg-path::before { content: ""; color: #3264DC; }
+        .seg-git::before  { content: ""; color: #00BEBE; }
+
+        .last-arr {
+            font-family: 'MesloLGL Nerd Font', 'SF Mono', 'Fira Code', monospace;
+        }
+        .last-arr.gold { color: #DCB400; }
+
+        .prompt-input {
             color: #00D200;
-            font-family: 'MesloLGS Nerd Font', 'SF Mono', 'Fira Code', monospace;
+            padding: 4px 0 0 8px;
+            font-family: 'MesloLGL Nerd Font', 'SF Mono', 'Fira Code', monospace;
             font-size: 14px;
-            margin-left: -8px;
-        }
-        .trailing-sep-green::before {
-            content: "";
         }
 
         .cursor {
@@ -242,6 +336,74 @@
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
             gap: 24px;
+        }
+
+        /* Style Gallery */
+        .styles {
+            margin: 80px 0;
+        }
+
+        .styles h2 {
+            text-align: center;
+            font-size: 36px;
+            margin-bottom: 16px;
+            color: var(--gold);
+        }
+
+        .style-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin-top: 32px;
+        }
+
+        .style-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+            transition: border-color 0.2s, transform 0.2s;
+        }
+
+        .style-card:hover {
+            border-color: var(--gold);
+            transform: translateY(-2px);
+        }
+
+        .style-label {
+            padding: 10px 16px;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--gold);
+            background: rgba(220, 180, 0, 0.08);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .style-terminal {
+            border: none;
+            border-radius: 0;
+            box-shadow: none;
+        }
+
+        .style-body {
+            padding: 12px 16px;
+            font-size: 13px;
+            line-height: 1.5;
+            background: #0D1117;
+            white-space: nowrap;
+            overflow-x: auto;
+        }
+
+        .style-preview {
+            font-family: 'MesloLGL Nerd Font', 'SF Mono', 'Fira Code', monospace;
+        }
+
+        .text-prompt {
+            color: #E6EDF3;
+        }
+
+        .text-git {
+            color: #DCB400;
         }
 
         .feature-card {
@@ -567,7 +729,7 @@
     <div class="container">
         <!-- Hero -->
         <section class="hero">
-            <span class="hero-badge">v1.0.0</span>
+            <span class="hero-badge">v1.1.0</span>
             <h1>termeric</h1>
             <p class="hero-subtitle">
                 Golden prompts for your terminal. A modernized shell prompt for bash, zsh, and fish with powerline segments, git status caching, and sub-10ms rendering.
@@ -585,28 +747,73 @@
             </div>
         </section>
 
-        <!-- Preview -->
-        <section class="preview">
-            <div class="terminal">
-                <div class="terminal-header">
-                    <div class="terminal-dot red"></div>
-                    <div class="terminal-dot yellow"></div>
-                    <div class="terminal-dot green"></div>
-                </div>
-                <div class="terminal-body">
-                    <div class="prompt-powerline">
-                        <span class="leading-arrow"></span>
-                        <span class="segment segment-ok"> ✓ </span>
-                        <span class="segment segment-user"> user@host </span>
-                        <span class="segment segment-path"> ~/projects/termeric </span>
-                        <span class="segment segment-git"> main +3 ~1 </span>
-                        <span class="segment segment-time"> 2s </span>
-                        <span class="trailing-sep"></span>
+        <!-- Prompt Carousel -->
+        <section class="carousel-wrapper">
+            <h2>Prompt Styles</h2>
+            <input type="radio" name="style-tab" id="tab-0" checked>
+            <input type="radio" name="style-tab" id="tab-1">
+            <input type="radio" name="style-tab" id="tab-2">
+            <input type="radio" name="style-tab" id="tab-3">
+            <input type="radio" name="style-tab" id="tab-4">
+            <div class="carousel-tabs">
+                <label for="tab-0">Style 0</label>
+                <label for="tab-1">Style 1</label>
+                <label for="tab-2">Style 2</label>
+                <label for="tab-3">Style 3</label>
+                <label for="tab-4">Style 4</label>
+            </div>
+            <div class="carousel-content">
+                <!-- Style 0: Powerline (full terminal) -->
+                <div id="content-0" class="carousel-panel">
+                    <div class="terminal">
+                        <div class="terminal-body">
+                            <div class="prompt-line">
+                                <span class="seg seg-lead"></span>
+                                <span class="seg seg-user"> user@host </span>
+                                <span class="seg seg-path"> ~/Workspace/termeric </span>
+                                <span class="seg seg-git">  main  1 </span>
+                                <span class="last-arr gold"></span>
+                            </div>
+                            <div class="prompt-input">
+                                ❯❯ <span class="cursor"></span>
+                            </div>
+                        </div>
                     </div>
-                    <div class="prompt-powerline">
-                        <span class="leading-arrow"></span>
-                        <span class="segment segment-prompt"> % </span>
-                        <span class="trailing-sep-green"></span>
+                </div>
+                <!-- Style 1: Basename only -->
+                <div id="content-1" class="carousel-panel">
+                    <div class="terminal terminal-compact">
+                        <div class="terminal-body">
+                            <div class="style-preview text-prompt">   termeric <span class="text-git"> main</span></div>
+                            <div class="prompt-input">❯❯ </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Style 2: Abbreviated path -->
+                <div id="content-2" class="carousel-panel">
+                    <div class="terminal terminal-compact">
+                        <div class="terminal-body">
+                            <div class="style-preview text-prompt">   ~/W/termeric <span class="text-git"> main</span></div>
+                            <div class="prompt-input">❯❯ </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Style 3: Full path -->
+                <div id="content-3" class="carousel-panel">
+                    <div class="terminal terminal-compact">
+                        <div class="terminal-body">
+                            <div class="style-preview text-prompt">   ~/Workspace/termeric <span class="text-git"> main</span></div>
+                            <div class="prompt-input">❯❯ </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Style 4: Long text -->
+                <div id="content-4" class="carousel-panel">
+                    <div class="terminal terminal-compact">
+                        <div class="terminal-body">
+                            <div class="style-preview text-prompt">user@host ~/Workspace/termeric  main</div>
+                            <div class="prompt-input">❯❯ </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -634,7 +841,7 @@
                 <div class="feature-card">
                     <div class="feature-icon">📦</div>
                     <h3>Bundled Font</h3>
-                    <p>MesloLGS Nerd Font included. No extra downloads needed — just install and go.</p>
+                    <p>MesloLGL Nerd Font included. No extra downloads needed — just install and go.</p>
                 </div>
                 <div class="feature-card">
                     <div class="feature-icon">🧹</div>
@@ -721,43 +928,65 @@
                 </thead>
                 <tbody>
                     <tr>
-                        <td><code>PROMPT_COLOR_MODE</code></td>
+                        <td><code>PROMPT_COLOR</code></td>
                         <td><code>on</code></td>
-                        <td>Powerline mode with background segments and arrows (<code>on</code>), or colored text only (<code>off</code>)</td>
+                        <td>Master color switch: <code>on</code> (default) or <code>off</code></td>
                     </tr>
                     <tr>
-                        <td><code>PROMPT_EXIT_CODE</code></td>
-                        <td><code>on</code></td>
-                        <td>Show ✓/✗ exit code indicator after every command</td>
+                        <td><code>PROMPT_STYLE</code></td>
+                        <td><code>0</code></td>
+                        <td>Prompt style: 0=powerline, 1=basename, 2=abbreviated, 3=full path, 4=long text</td>
                     </tr>
                     <tr>
-                        <td><code>PROMPT_CMD_TIME</code></td>
+                        <td><code>PROMPT_SHOW_USER</code></td>
+                        <td><code>on</code></td>
+                        <td>Show user@host segment</td>
+                    </tr>
+                    <tr>
+                        <td><code>PROMPT_SHOW_EXIT</code></td>
+                        <td><code>on</code></td>
+                        <td>Show ✘ exit code indicator on failure</td>
+                    </tr>
+                    <tr>
+                        <td><code>PROMPT_SHOW_DIR</code></td>
+                        <td><code>on</code></td>
+                        <td>Show directory path</td>
+                    </tr>
+                    <tr>
+                        <td><code>PROMPT_SHOW_SSH</code></td>
+                        <td><code>on</code></td>
+                        <td>Show SSH indicator when connected</td>
+                    </tr>
+                    <tr>
+                        <td><code>PROMPT_SHOW_TIME</code></td>
                         <td><code>off</code></td>
                         <td>Show command duration when it exceeds 2 seconds</td>
-                    </tr>
-                    <tr>
-                        <td><code>PROMPT_USER_HOST</code></td>
-                        <td><code>off</code></td>
-                        <td>Show user@host segment at the start of the prompt</td>
                     </tr>
                 </tbody>
             </table>
             <div class="docs-example">
                 <p><strong>bash/zsh</strong> (in <code>~/.bashrc</code> or <code>~/.zshrc</code>):</p>
                 <div class="code-block-wrapper">
-                    <pre><code>export PROMPT_COLOR_MODE=on
-export PROMPT_EXIT_CODE=on
-export PROMPT_CMD_TIME=off
-export PROMPT_USER_HOST=off</code></pre>
+                    <pre><code>export PROMPT_COLOR=on
+export PROMPT_STYLE=0
+export PROMPT_SHOW_USER=on
+export PROMPT_SHOW_EXIT=on
+export PROMPT_SHOW_DIR=on
+export PROMPT_SHOW_SSH=on
+export PROMPT_SHOW_TIME=off</code></pre>
                     <button class="copy-hover-btn" onclick="copyHoverCode(this)">Copy</button>
                 </div>
             </div>
             <div class="docs-example">
                 <p><strong>fish</strong> (in <code>~/.config/fish/config.fish</code>):</p>
                 <div class="code-block-wrapper">
-                    <pre><code>set -g PROMPT_COLOR_MODE on
-set -g PROMPT_EXIT_CODE on
-set -g PROMPT_CMD_TIME off</code></pre>
+                    <pre><code>set -g PROMPT_COLOR on
+set -g PROMPT_STYLE 0
+set -g PROMPT_SHOW_USER on
+set -g PROMPT_SHOW_EXIT on
+set -g PROMPT_SHOW_DIR on
+set -g PROMPT_SHOW_SSH on
+set -g PROMPT_SHOW_TIME off</code></pre>
                     <button class="copy-hover-btn" onclick="copyHoverCode(this)">Copy</button>
                 </div>
             </div>
@@ -814,11 +1043,11 @@ set -g PROMPT_CMD_TIME off</code></pre>
             <div class="docs-faq">
                 <div class="faq-item">
                     <p class="faq-q"><strong>Prompt looks like raw escape codes</strong></p>
-                    <p class="faq-a">Make sure <code>PROMPT_COLOR_MODE=on</code> is set before sourcing termeric. Your terminal must support 256color or truecolor. Check with: <code>echo $TERM</code> — should end in <code>-256color</code> or <code>-truecolor</code>.</p>
+                    <p class="faq-a">Make sure <code>PROMPT_COLOR=on</code> is set before sourcing termeric. Your terminal must support 256color or truecolor. Check with: <code>echo $TERM</code> — should end in <code>-256color</code> or <code>-truecolor</code>.</p>
                 </div>
                 <div class="faq-item">
                     <p class="faq-q"><strong>Powerline arrows show as broken characters</strong></p>
-                    <p class="faq-a">Install a Nerd Font: <code>termeric font</code>, then set your terminal to use "MesloLGS Nerd Font". The arrow characters (U+E0B0 / U+E0B2) require a patched font.</p>
+                    <p class="faq-a">Install a Nerd Font: <code>termeric font</code>, then set your terminal to use "MesloLGL Nerd Font". The arrow characters ( / ) require a patched font.</p>
                 </div>
                 <div class="faq-item">
                     <p class="faq-q"><strong>Prompt conflicts with oh-my-zsh / powerlevel10k</strong></p>
@@ -826,7 +1055,7 @@ set -g PROMPT_CMD_TIME off</code></pre>
                 </div>
                 <div class="faq-item">
                     <p class="faq-q"><strong>Git status not showing</strong></p>
-                    <p class="faq-a">You need <code>git</code> installed and the directory must be a git repository. Run <code>termeric doctor</code> to verify. The git status cache lives in <code>.git/.termeric_cache</code>.</p>
+                    <p class="faq-a">You need <code>git</code> installed and the directory must be a git repository. Run <code>termeric doctor</code> to verify. The git status cache lives in <code>~/.cache/termeric/</code>.</p>
                 </div>
                 <div class="faq-item">
                     <p class="faq-q"><strong>Updates and upgrades</strong></p>
@@ -858,6 +1087,29 @@ set -g PROMPT_CMD_TIME off</code></pre>
             btn.textContent = 'Copied!';
             setTimeout(() => btn.textContent = 'Copy', 2000);
         }
+
+        // ── Carousel auto-rotation ──
+        (function() {
+            var tabs = document.querySelectorAll('.carousel-tabs input[type="radio"]');
+            if (tabs.length === 0) return;
+            var current = 0;
+            var interval;
+            var wrapper = document.querySelector('.carousel-wrapper');
+            function rotate() {
+                interval = setInterval(function() {
+                    current = (current + 1) % tabs.length;
+                    tabs[current].checked = true;
+                }, 3000);
+            }
+            function stop() { clearInterval(interval); }
+            tabs[0].checked = true;
+            rotate();
+            if (wrapper) {
+                wrapper.addEventListener('mouseenter', stop);
+                wrapper.addEventListener('mouseleave', rotate);
+                wrapper.addEventListener('click', function() { stop(); rotate(); });
+            }
+        })();
     </script>
 </body>
 </html>

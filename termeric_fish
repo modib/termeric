@@ -2,16 +2,22 @@
 # Source: source ~/.termeric_fish
 #
 # Configuration (set before sourcing):
-#   set -g PROMPT_COLOR_MODE on   Powerline mode: on (default) or off (colored text only)
-#   set -g PROMPT_EXIT_CODE on   Exit indicator (default: on)
-#   set -g PROMPT_CMD_TIME off   Command duration >=2s (default: off)
-#   set -g PROMPT_USER_HOST off  Show user@host segment  (default: off)
+#   set -g PROMPT_COLOR on        Master color switch: on (default) or off
+#   set -g PROMPT_STYLE 0         Prompt style: 0=powerline, 1=basename, 2=abbreviated, 3=full path, 4=long text (default: 0)
+#   set -g PROMPT_SHOW_USER on    Show user@host segment
+#   set -g PROMPT_SHOW_EXIT on    Show exit code on failure
+#   set -g PROMPT_SHOW_DIR on     Show directory path
+#   set -g PROMPT_SHOW_SSH on     Show SSH indicator when connected
+#   set -g PROMPT_SHOW_TIME off   Show command duration when >=2s
 
 # ── Defaults ────────────────────────────────────────────────────
-set -q PROMPT_COLOR_MODE; or set -g PROMPT_COLOR_MODE on
-set -q PROMPT_EXIT_CODE; or set -g PROMPT_EXIT_CODE on
-set -q PROMPT_CMD_TIME; or set -g PROMPT_CMD_TIME off
-set -q PROMPT_USER_HOST; or set -g PROMPT_USER_HOST off
+set -q PROMPT_COLOR; or set -g PROMPT_COLOR on
+set -q PROMPT_STYLE; or set -g PROMPT_STYLE 0
+set -q PROMPT_SHOW_USER; or set -g PROMPT_SHOW_USER on
+set -q PROMPT_SHOW_EXIT; or set -g PROMPT_SHOW_EXIT on
+set -q PROMPT_SHOW_DIR; or set -g PROMPT_SHOW_DIR on
+set -q PROMPT_SHOW_SSH; or set -g PROMPT_SHOW_SSH on
+set -q PROMPT_SHOW_TIME; or set -g PROMPT_SHOW_TIME off
 
 # ── Term detection (once) ──────────────────────────────────────
 switch $TERM
@@ -32,53 +38,82 @@ end
 # ── Hostname cache (one fork at source time) ────────────────────
 set -g _tmerm_hostname (hostname -s 2>/dev/null; or hostname 2>/dev/null)
 
-# ── Color definitions (re-evaluated when mode changes) ──────────
+# ── Validate PROMPT_STYLE ───────────────────────────────────────
+switch "$PROMPT_STYLE"
+    case 0 1 2 3 4
+    case '*'
+        echo "termeric: invalid PROMPT_STYLE=$PROMPT_STYLE, defaulting to 1" >&2
+        echo "  Valid styles:" >&2
+        echo "    0  Powerline (background segments, arrows)" >&2
+        echo "    1  Basename only" >&2
+        echo "    2  Abbreviated path" >&2
+        echo "    3  Full path (~/project/path)" >&2
+        echo "    4  Long text prompt (user@host path git)" >&2
+        set -g PROMPT_STYLE 1
+end
+
+# ── Color definitions (runs at source time and on PROMPT_COLOR change) ──
 function __tmerm_init_colors
-    set -q _tmerm_color_mode; or set -g _tmerm_color_mode ""
-    test "$PROMPT_COLOR_MODE" != "$_tmerm_color_mode"; or return
-    set -g _tmerm_color_mode "$PROMPT_COLOR_MODE"
+    if test "$PROMPT_COLOR" != off
+        # Powerline backgrounds
+        set -g BG_OK      (set_color -b 3C3C3C)
+        set -g BG_FAIL    (set_color -b 3C3C3C)
+        set -g BG_USER    (set_color -b 3264DC)
+        set -g BG_PATH    (set_color -b 00BEBE)
+        set -g BG_GIT     (set_color -b DCB400)
+        set -g BG_TIME    (set_color -b C832C8)
 
-    # Powerline backgrounds
-    set -g BG_OK      (set_color -b 00D200)
-    set -g BG_FAIL    (set_color -b DC3232)
-    set -g BG_USER    (set_color -b 3264DC)
-    set -g BG_PATH    (set_color -b 00BEBE)
-    set -g BG_GIT     (set_color -b DCB400)
-    set -g BG_TIME    (set_color -b C832C8)
-    set -g BG_PRM     (set_color -b 00D200)
+        # Arrow foregrounds (match previous segment bg)
+        set -g ARROW_OK     (set_color 00D200)
+        set -g ARROW_FAIL   (set_color DC3232)
+        set -g ARROW_USER   (set_color 3264DC)
+        set -g ARROW_PATH   (set_color 00BEBE)
+        set -g ARROW_GIT    (set_color DCB400)
+        set -g ARROW_TIME   (set_color C832C8)
+        set -g ARROW_DARK   (set_color 3C3C3C)
 
-    # Arrow foregrounds (match previous segment bg)
-    set -g ARROW_OK     (set_color 00D200)
-    set -g ARROW_FAIL   (set_color DC3232)
-    set -g ARROW_USER   (set_color 3264DC)
-    set -g ARROW_PATH   (set_color 00BEBE)
-    set -g ARROW_GIT    (set_color DCB400)
-    set -g ARROW_TIME   (set_color C832C8)
-    set -g ARROW_BLACK  (set_color 1e1e1e)
+        # Text on backgrounds
+        set -g TXT_BG     (set_color FFFFFF)
+        set -g TXT_BG_LIT (set_color 000000)
 
-    # Text on dark backgrounds
-    set -g TXT_BG     (set_color FFFFFF)
-    set -g TXT_BG_LIT (set_color 000000)
+        # Text-mode foregrounds
+        set -g TXT_OK     (set_color green)
+        set -g TXT_FAIL   (set_color red --bold)
+        set -g RCOLOR     (set_color normal)
+        set -g PROMPT_SEP_GREEN (set_color green)
+        set -g TXT_USER   (set_color green)
+        set -g TXT_PATH   (set_color blue)
+        set -g TXT_GIT    (set_color yellow)
+        set -g TXT_TIME   (set_color cyan)
 
-    # Text-mode foregrounds
-    set -g TXT_OK     (set_color green)
-    set -g TXT_FAIL   (set_color red --bold)
-    set -g TXT_USER   (set_color green)
-    set -g TXT_PATH   (set_color blue)
-    set -g TXT_GIT    (set_color yellow)
-    set -g TXT_TIME   (set_color cyan)
+        # Reset
+        set -g R (set_color normal)
 
-    # Reset
-    set -g R (set_color normal)
-
-    # Powerline separator
-    set -g PSEP 
-    set -g PSEP_LEFT 
+        # Powerline separator
+        set -g PSEP 
+        set -g PSEP_LEFT 
+    else
+        set -g BG_OK "";    set -g ARROW_OK ""
+        set -g BG_FAIL "";  set -g ARROW_FAIL ""
+        set -g BG_USER "";  set -g ARROW_USER ""
+        set -g BG_PATH "";  set -g ARROW_PATH ""
+        set -g BG_GIT "";   set -g ARROW_GIT ""
+        set -g BG_TIME "";  set -g ARROW_TIME ""
+        set -g ARROW_DARK ""
+        set -g TXT_BG "";   set -g TXT_BG_LIT ""
+        set -g TXT_OK "";   set -g TXT_FAIL ""
+        set -g RCOLOR ""
+        set -g PROMPT_SEP_GREEN ""
+        set -g TXT_USER ""; set -g TXT_PATH ""
+        set -g TXT_GIT "";  set -g TXT_TIME ""
+        set -g R ""
+        set -g PSEP ""
+        set -g PSEP_LEFT ""
+    end
 end
 
 # Run once at startup
 if test "$_tmerm_color" = yes
-    set -g _tmerm_color_mode ""
     __tmerm_init_colors
 end
 
@@ -86,8 +121,21 @@ end
 set -g __tmerm_timer 0
 
 function __tmerm_cmd_start --on-event fish_preexec
-    test "$PROMPT_CMD_TIME" != off; or return
+    test "$PROMPT_SHOW_TIME" != off; or return
     set -g __tmerm_timer (date +%s)
+end
+
+# ── Path shortening (for PROMPT_STYLE) ─────────────────────────
+function __tmerm_shortened_path
+    set -l level $argv[1]
+    switch "$level"
+        case 0 3
+            string replace -r "^$HOME" "~" -- (pwd)
+        case 1
+            basename (pwd)
+        case 2
+            prompt_pwd
+    end
 end
 
 # ── Git info via cache ─────────────────────────────────────────
@@ -99,9 +147,18 @@ function __tmerm_git_info
     set -l git_dir (git rev-parse --git-dir 2>/dev/null)
     or return
 
-    set -l cache_file "$git_dir/.termeric_cache"
     set -l head_file "$git_dir/HEAD"
     set -l index_file "$git_dir/index"
+
+    # Cache dir (XDG compliant, per-repo via md5 hash of toplevel path)
+    set -l repo_hash (git rev-parse --show-toplevel 2>/dev/null | md5 -q 2>/dev/null; or git rev-parse --show-toplevel 2>/dev/null | md5sum | cut -d' ' -f1 2>/dev/null)
+    or return
+    set -l cache_dir "$XDG_CACHE_HOME"
+    test -n "$cache_dir"; or set cache_dir "$HOME/.cache"
+    set cache_dir "$cache_dir/termeric"
+    mkdir -p "$cache_dir" 2>/dev/null
+    set -l cache_file "$cache_dir/$repo_hash.cache"
+    set -l result_file "$cache_dir/$repo_hash.result"
 
     # Check cache validity
     if test -f "$cache_file"
@@ -110,9 +167,8 @@ function __tmerm_git_info
         set -l cur_head (stat -f '%m' "$head_file" 2>/dev/null; or stat -c '%Y' "$head_file" 2>/dev/null)
         set -l cur_index (stat -f '%m' "$index_file" 2>/dev/null; or stat -c '%Y' "$index_file" 2>/dev/null)
         if test "$cur_head" = "$cached_head"; and test "$cur_index" = "$cached_index"
-            set -l cache_result "$git_dir/.termeric_result"
-            if test -f "$cache_result"
-                cat "$cache_result"
+            if test -f "$result_file"
+                cat "$result_file"
                 return
             end
         end
@@ -155,14 +211,14 @@ function __tmerm_git_info
 
     test -z "$branch"; and return
 
-    set -l out "$branch"
+    set -l out " $branch"
     set -l details ""
 
-    test $ahead -gt 0; and set details "$details↑$ahead "
-    test $behind -gt 0; and set details "$details↓$behind "
-    test $staged -gt 0; and set details "$details+$staged "
-    test $unstaged -gt 0; and set details "$details~$unstaged "
-    test $untracked -gt 0; and set details "$details?$untracked "
+    test $ahead -gt 0; and set details "$details $ahead "
+    test $behind -gt 0; and set details "$details $behind "
+    test $staged -gt 0; and set details "$details $staged "
+    test $unstaged -gt 0; and set details "$details $unstaged "
+    test $untracked -gt 0; and set details "$details $untracked "
     set details (string trim "$details")
 
     test -n "$details"; and set out "$out $details"
@@ -173,140 +229,220 @@ function __tmerm_git_info
     set -l cur_head (stat -f '%m' "$head_file" 2>/dev/null; or stat -c '%Y' "$head_file" 2>/dev/null)
     set -l cur_index (stat -f '%m' "$index_file" 2>/dev/null; or stat -c '%Y' "$index_file" 2>/dev/null)
     printf '%s %s\n' "$cur_head" "$cur_index" > "$cache_file"
-    printf '%s' "$out" > "$git_dir/.termeric_result"
+    printf '%s' "$out" > "$result_file"
+    # Clean up old per-repo cache files
+    rm -f "$git_dir/.termeric_cache" "$git_dir/.termeric_result" 2>/dev/null
 end
 
 # ── Prompt builder ──────────────────────────────────────────────
 function fish_prompt
     set -l rc $status
     set -l data ""
-    set -l arrow ""
+    set -l style "$PROMPT_STYLE"
+
+    # Runtime style validation
+    switch "$style"
+        case 0 1 2 3 4
+        case '*'
+            if not set -q _tmerm_style_warned
+                echo "termeric: invalid PROMPT_STYLE=$style, defaulting to 1" >&2
+                echo "  Valid styles:" >&2
+                echo "    0  Powerline (background segments, arrows)" >&2
+                echo "    1  Basename only" >&2
+                echo "    2  Abbreviated path" >&2
+                echo "    3  Full path (~/project/path)" >&2
+                echo "    4  Long text prompt (user@host path git)" >&2
+                set -g _tmerm_style_warned 1
+            end
+            set style 1
+    end
 
     # Window title
     if test "$_tmerm_has_title" = yes
         set data "\033]0;$USER@$_tmerm_hostname: "(pwd)"\a"
     end
 
+    # Initialize colors if terminal supports it
     if test "$_tmerm_color" = yes
         __tmerm_init_colors
-        if test "$PROMPT_COLOR_MODE" != off
-            # ── POWERLINE MODE ──
+    end
 
-            # Exit code
-            if test "$PROMPT_EXIT_CODE" != off
-                if test $rc -eq 0
-                    set data "$data$BG_OK$ARROW_BLACK$PSEP$TXT_BG_LIT ✓ $R"
-                    set arrow "$ARROW_OK"
-                else
-                    set data "$data$BG_FAIL$ARROW_BLACK$PSEP$TXT_BG ✗ $rc $R"
-                    set arrow "$ARROW_FAIL"
-                end
+    # Style 4: long text prompt without background colors
+    if test "$style" = 4
+        if test $rc -ne 0; and test "$PROMPT_SHOW_EXIT" != off
+            set data "$data$TXT_FAIL✘ $rc$RCOLOR "
+        end
+        if test "$PROMPT_SHOW_USER" != off
+            if test "$PROMPT_SHOW_SSH" != off; and test -n "$SSH_CONNECTION"
+                set data "$data$TXT_USER$USER@ssh:$_tmerm_hostname$RCOLOR "
+            else
+                set data "$data$TXT_USER$USER@$_tmerm_hostname$RCOLOR "
             end
+        end
+        if test "$PROMPT_SHOW_DIR" != off
+            set data "$data$TXT_PATH"(prompt_pwd)"$RCOLOR"
+        end
+        set -l git_info (__tmerm_git_info 2>/dev/null)
+        if test -n "$git_info"
+            set data "$data $TXT_GIT$git_info$RCOLOR"
+        end
+        if test "$PROMPT_SHOW_TIME" != off; and test $__tmerm_timer -gt 0
+            set -l duration (math (date +%s) - $__tmerm_timer)
+            if test $duration -ge 2
+                set data "$data $TXT_TIME[$duration s]$RCOLOR"
+            end
+        end
+        printf '%b\n' "$data"
+        if test -n "$PROMPT_SEP_GREEN"
+            set_color green
+        end
+        printf '%s\n' '❯❯ '
+        if test -n "$PROMPT_SEP_GREEN"
+            set_color normal
+        end
+        set -g __tmerm_timer 0
+        return
+    end
 
-            # Session
-            if test "$PROMPT_USER_HOST" != off
-                if test -n "$arrow"
-                    set data "$data$BG_USER$arrow$PSEP$R$BG_USER$TXT_BG"
-                else
-                    set data "$data$BG_USER$TXT_BG"
-                end
+    # Styles 1, 2: shortened path prompts
+    if test "$style" != 0
+        set -l spath (__tmerm_shortened_path $style)
+        if test $rc -ne 0; and test "$PROMPT_SHOW_EXIT" != off
+            set data "$data$TXT_FAIL✘ $rc$RCOLOR "
+        end
+        if test "$PROMPT_SHOW_DIR" != off
+            set data "$data$TXT_PATH  $spath$RCOLOR"
+        else
+            set data "$data$TXT_PATH$spath$RCOLOR"
+        end
+        set -l git_info (__tmerm_git_info 2>/dev/null)
+        if test -n "$git_info"
+            set data "$data $TXT_GIT$git_info$RCOLOR"
+        end
+        printf '%b\n' "$data"
+        if test -n "$PROMPT_SEP_GREEN"
+            set_color green
+        end
+        printf '%s\n' '❯❯ '
+        if test -n "$PROMPT_SEP_GREEN"
+            set_color normal
+        end
+        set -g __tmerm_timer 0
+        return
+    end
+
+    # Style 0: powerline or monochrome
+    if test "$_tmerm_color" = yes; and test "$PROMPT_COLOR" != off
+        # ── POWERLINE MODE ──
+        set -l arrow ""
+
+        # Exit code (only show on failure) — first segment
+        if test $rc -ne 0; and test "$PROMPT_SHOW_EXIT" != off
+            set data "$data$BG_FAIL$ARROW_DARK $PSEP$R$BG_FAIL$TXT_FAIL ✘ $rc $R"
+            set arrow "$ARROW_DARK"
+        end
+
+        # Session
+        if test "$PROMPT_SHOW_USER" != off
+            if test -n "$arrow"
+                set data "$data$BG_USER$arrow$PSEP$R$BG_USER$TXT_BG"
+            else
+                set data "$data$BG_FAIL$ARROW_DARK $PSEP$R$BG_USER$TXT_BG"
+            end
+            if test "$PROMPT_SHOW_SSH" != off; and test -n "$SSH_CONNECTION"
+                set data "$data $USER@ssh:$_tmerm_hostname $R"
+            else
                 set data "$data $USER@$_tmerm_hostname $R"
-                set arrow "$ARROW_USER"
             end
+            set arrow "$ARROW_USER"
+        end
 
-            # Path
-            set data "$data$BG_PATH$arrow$PSEP$R$BG_PATH$TXT_BG_LIT"
+        # Path
+        if test "$PROMPT_SHOW_DIR" != off
+            if test -n "$arrow"
+                set data "$data$BG_PATH$arrow$PSEP$R$BG_PATH$TXT_BG_LIT"
+            else
+                set data "$data$BG_FAIL$ARROW_DARK $PSEP$R$BG_PATH$TXT_BG_LIT"
+            end
             set data "$data "(prompt_pwd)" $R"
             set arrow "$ARROW_PATH"
+        end
 
-            # Git
-            set -l git_info (__tmerm_git_info 2>/dev/null)
-            if test -n "$git_info"
+        # Git
+        set -l git_info (__tmerm_git_info 2>/dev/null)
+        if test -n "$git_info"
+            if test -n "$arrow"
                 set data "$data$BG_GIT$arrow$PSEP$R$BG_GIT$TXT_BG_LIT"
-                set data "$data $git_info $R"
-                set arrow "$ARROW_GIT"
-            end
-
-            # Timing
-            if test "$PROMPT_CMD_TIME" != off; and test $__tmerm_timer -gt 0
-                set -l duration (math (date +%s) - $__tmerm_timer)
-                if test $duration -ge 2
-                    set data "$data$BG_TIME$arrow$PSEP$R$BG_TIME$TXT_BG"
-                    set data "$data $duration s $R"
-                    set arrow "$ARROW_TIME"
-                end
-            end
-
-            # Trailing separator
-            if test -n "$arrow"
-                set data "$data$arrow$PSEP$R"
-            end
-
-            # Output line 1
-            printf '%b' "$data"
-
-            # Line 2: leading arrow + prompt char + trailing arrow
-            if test -n "$arrow"
-                printf '%b' "$BG_PRM$ARROW_BLACK$PSEP$TXT_BG_LIT %# $R$ARROW_OK$PSEP $R"
             else
-                printf '%s' '$ '
+                set data "$data$BG_FAIL$ARROW_DARK $PSEP$R$BG_GIT$TXT_BG_LIT"
             end
-        else
-            # ── NORMAL MODE ──
+            set data "$data $git_info $R"
+            set arrow "$ARROW_GIT"
+        end
 
-            if test "$PROMPT_EXIT_CODE" != off
-                if test $rc -eq 0
-                    set data "$data$TXT_OK✓$R "
+        # Timing
+        if test "$PROMPT_SHOW_TIME" != off; and test $__tmerm_timer -gt 0
+            set -l duration (math (date +%s) - $__tmerm_timer)
+            if test $duration -ge 2
+                if test -n "$arrow"
+                    set data "$data$BG_TIME$arrow$PSEP$R$BG_TIME$TXT_BG"
                 else
-                    set data "$data$TXT_FAIL✗ $rc$R "
+                    set data "$data$BG_FAIL$ARROW_DARK $PSEP$R$BG_TIME$TXT_BG"
                 end
+                set data "$data $duration s $R"
+                set arrow "$ARROW_TIME"
             end
+        end
 
-            if test "$PROMPT_USER_HOST" != off
-                set data "$data$TXT_USER$USER@$_tmerm_hostname$R "
-            end
-            set data "$data$TXT_PATH"(prompt_pwd)"$R"
+        # Trailing separator
+        if test -n "$arrow"
+            set data "$data$arrow$PSEP$R"
+        end
 
-            set -l git_info (__tmerm_git_info 2>/dev/null)
-            if test -n "$git_info"
-                set data "$data $TXT_GIT($git_info)$R"
-            end
+        # Output line 1
+        printf '%b' "$data"
 
-            if test "$PROMPT_CMD_TIME" != off; and test $__tmerm_timer -gt 0
-                set -l duration (math (date +%s) - $__tmerm_timer)
-                if test $duration -ge 2
-                    set data "$data $TXT_TIME[$duration s]$R"
-                end
-            end
-
-            printf '%s' "$data"
-            printf '%s\n$ '
+        # Line 2
+        if test -n "$PROMPT_SEP_GREEN"
+            set_color green
+        end
+        printf '\n%s' '❯❯ '
+        if test -n "$PROMPT_SEP_GREEN"
+            set_color normal
         end
     else
         # ── MONOCHROME MODE ──
-        if test "$PROMPT_USER_HOST" != off
-            set data "$USER@$_tmerm_hostname:"(prompt_pwd)
-        else
-            set data (prompt_pwd)
+        set -l mono ""
+
+        if test $rc -ne 0; and test "$PROMPT_SHOW_EXIT" != off
+            set mono "✘ $rc "
+        end
+
+        if test "$PROMPT_SHOW_USER" != off
+            if test "$PROMPT_SHOW_SSH" != off; and test -n "$SSH_CONNECTION"
+                set mono "$mono$USER@ssh:$_tmerm_hostname:"
+            else
+                set mono "$mono$USER@$_tmerm_hostname:"
+            end
+        end
+
+        if test "$PROMPT_SHOW_DIR" != off
+            set mono "$mono"(prompt_pwd)
         end
 
         set -l git_info (__tmerm_git_info 2>/dev/null)
         if test -n "$git_info"
-            set data "$data ($git_info)"
+            set mono "$mono ($git_info)"
         end
 
-        if test $rc -ne 0
-            set data "[$rc] $data"
-        end
-
-        if test "$PROMPT_CMD_TIME" != off; and test $__tmerm_timer -gt 0
+        if test "$PROMPT_SHOW_TIME" != off; and test $__tmerm_timer -gt 0
             set -l duration (math (date +%s) - $__tmerm_timer)
             if test $duration -ge 2
-                set data "$data [$duration s]"
+                set mono "$mono [$duration s]"
             end
         end
 
-        printf '%s\n$ ' "$data"
+        printf '%s\n%s' "$mono" '❯❯ '
     end
 
     set -g __tmerm_timer 0

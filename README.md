@@ -56,26 +56,36 @@ Set these in your shell config **before** sourcing termeric:
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `PROMPT_COLOR_MODE` | `on` | Powerline mode (`on`) or colored text only (`off`) |
-| `PROMPT_EXIT_CODE` | `on` | Show ✓/✗ exit code indicator |
-| `PROMPT_CMD_TIME` | `off` | Show command duration when ≥2s |
-| `PROMPT_USER_HOST` | `off` | Show user@host segment |
+| `PROMPT_COLOR` | `on` | Master color switch: `on` (default) or `off` |
+| `PROMPT_STYLE` | `0` | Prompt style: `0`=powerline, `1`=basename, `2`=abbreviated, `3`=full path, `4`=long text |
+| `PROMPT_SHOW_USER` | `on` | Show user@host segment |
+| `PROMPT_SHOW_EXIT` | `on` | Show exit code on failure |
+| `PROMPT_SHOW_DIR` | `on` | Show directory path |
+| `PROMPT_SHOW_SSH` | `on` | Show SSH indicator when connected |
+| `PROMPT_SHOW_TIME` | `off` | Show command duration when ≥2s |
 
 **bash/zsh** (in `~/.bashrc` or `~/.zshrc`):
 
 ```bash
-export PROMPT_COLOR_MODE=on    # or off for colored text only
-export PROMPT_EXIT_CODE=on
-export PROMPT_CMD_TIME=on
-export PROMPT_USER_HOST=on
+export PROMPT_COLOR=on         # or off for no colors
+export PROMPT_STYLE=0          # 0=powerline, 1=basename, 2=abbreviated, 3=full path, 4=long text
+export PROMPT_SHOW_USER=on
+export PROMPT_SHOW_EXIT=on
+export PROMPT_SHOW_DIR=on
+export PROMPT_SHOW_SSH=on
+export PROMPT_SHOW_TIME=off
 ```
 
 **fish** (in `~/.config/fish/config.fish`):
 
 ```fish
-set -g PROMPT_COLOR_MODE on    # or off for colored text only
-set -g PROMPT_EXIT_CODE on
-set -g PROMPT_CMD_TIME on
+set -g PROMPT_COLOR on         # or off for no colors
+set -g PROMPT_STYLE 0          # 0=powerline, 1=basename, 2=abbreviated, 3=full path, 4=long text
+set -g PROMPT_SHOW_USER on
+set -g PROMPT_SHOW_EXIT on
+set -g PROMPT_SHOW_DIR on
+set -g PROMPT_SHOW_SSH on
+set -g PROMPT_SHOW_TIME off
 ```
 
 ## CLI Commands
@@ -93,25 +103,25 @@ termeric version       # Show version
 
 ## Prompt Preview
 
-**Powerline mode** (default) — same across bash, zsh, fish:
+**Powerline mode** (default, `PROMPT_STYLE=0`) — same across bash, zsh, fish:
 
 ```
-✓  user@host  ~/project  main +2 ~1 ?3  3s
-$
+ user@host  ~/project   main +2 ~1 ?3 
+❯❯
 ```
 
-**Normal mode** (`PROMPT_COLOR_MODE=off`):
+**Long text mode** (`PROMPT_STYLE=4`):
 
 ```
-✓ user@host ~/project (main +2 ~1 ?3) [3s]
-$
+user@host ~/project ( main +2 ~1 ?3)
+❯❯
 ```
 
 ## Performance
 
 Termeric is optimized for speed:
 
-- **Git status cache** — stores results in `.git/.termeric_cache`, only recomputes when HEAD or index changes
+- **Git status cache** — stores results in `~/.cache/termeric/`, only recomputes when HEAD or index changes
 - **No subshells** — git info uses process substitution, not `$(command)` capture
 - **Early exit** — skips git commands entirely outside git repos
 - **Pre-computed flags** — terminal detection runs once at source time

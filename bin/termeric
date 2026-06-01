@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-TERMERIC_VERSION="1.0.0"
+TERMERIC_VERSION="1.1.0"
 TERMERIC_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 
 # Detect share directory (Homebrew pkgshare puts files under share/termeric/)
@@ -55,10 +55,14 @@ _show_help() {
 		"${BOLD}Configuration:${RESET}" \
 		"  Set these before sourcing termeric:" \
 		"" \
-		"    PROMPT_COLOR_MODE=on   Powerline mode: on (default) or off (colored text only)" \
-		"    PROMPT_EXIT_CODE=on   Show exit indicator (default: on)" \
-		"    PROMPT_CMD_TIME=off   Show command duration (default: off)" \
-		"    PROMPT_USER_HOST=off   Show user@host segment (default: off)" \
+		"    PROMPT_COLOR=on        Master color switch: on (default) or off" \
+		"    PROMPT_SHOW_USER=on    Show user@host segment (default: on)" \
+		"    PROMPT_SHOW_EXIT=on    Show exit code on failure (default: on)" \
+		"    PROMPT_SHOW_DIR=on     Show directory path (default: on)" \
+		"    PROMPT_SHOW_SSH=on     Show SSH indicator (default: on)" \
+		"    PROMPT_SHOW_TIME=off   Show command duration (default: off)" \
+		"    PROMPT_STYLE=0         Style: 0=powerline, 1=basename, 2=abbreviated," \
+		"                           3=full path, 4=long text (default: 0)" \
 		"" \
 		"${BOLD}Docs:${RESET}" \
 		"  https://modib.github.io/termeric/"
@@ -72,6 +76,33 @@ _detect_shell() {
 		shell_name="$(basename "$(ps -p $$ -o comm= 2>/dev/null)" 2>/dev/null || echo "bash")"
 	fi
 	echo "$shell_name"
+}
+
+# ── Read configured toggle value from shell rc file ───────────
+_get_rc_val() {
+	local var="$1"
+	local shell_name="$2"
+	shift 2
+	local rc_file=""
+	case "$shell_name" in
+	bash) rc_file="$HOME/.bashrc" ;;
+	zsh | zsh-*) rc_file="$HOME/.zshrc" ;;
+	fish) rc_file="$HOME/.config/fish/config.fish" ;;
+	*) return 0 ;;
+	esac
+	[ -f "$rc_file" ] || return 0
+	local val=""
+	# bash/zsh: PROMPT_STYLE=2 or export PROMPT_STYLE=2
+	val="$(grep -E "^[[:space:]]*(export[[:space:]]+)?${var}=" "$rc_file" 2>/dev/null | tail -1 | awk -F= '{print $2}' | tr -d "\"'" | tr -d ' ' || true)"
+	if [ -z "$val" ]; then
+		# fish: set -g PROMPT_STYLE 2
+		val="$(grep -E "^[[:space:]]*set -g ${var}[[:space:]]" "$rc_file" 2>/dev/null | tail -1 | awk '{print $NF}' || true)"
+	fi
+	printf '%s' "$val"
+}
+
+_get_style_desc() {
+	case "${1:-0}" in 0) echo "powerline";; 1) echo "basename";; 2) echo "abbreviated";; 3) echo "full path";; 4) echo "long text";; esac
 }
 
 # ── Install ─────────────────────────────────────────────────────
@@ -115,14 +146,12 @@ _cmd_install() {
 		_ok "Copied termeric_zsh to ~/.termeric_zsh"
 
 		# Check for existing termeric source lines (prevent duplication)
-		local existing_count=0
-		if [ -f "$HOME/.zshrc" ]; then
-			existing_count=$(grep -c "termeric" "$HOME/.zshrc" 2>/dev/null || true)
-			existing_count=${existing_count:-0}
-			existing_count=$(echo "$existing_count" | tr -d '[:space:]')
+		local zsh_already=0
+		if [ -f "$HOME/.zshrc" ] && grep -qF '~/.termeric_zsh' "$HOME/.zshrc" 2>/dev/null; then
+			zsh_already=1
 		fi
 
-		if [ "$existing_count" -eq 0 ] 2>/dev/null; then
+		if [ "$zsh_already" -eq 0 ]; then
 			# Check for conflicting prompt customizations
 			local conflicts=""
 			if [ -f "$HOME/.zshrc" ]; then
@@ -219,7 +248,7 @@ _cmd_install() {
 _cmd_uninstall() {
 	_info "Removing termeric..."
 
-	rm -f "$HOME/.termeric_bash" "$HOME/.termeric_zsh"
+	rm -f "$HOME/.termeric_bash" "$HOME/.termeric_zsh" "$HOME/.termeric_fish"
 
 	# Remove source lines from bash/zsh
 	for rc_file in "$HOME/.bashrc" "$HOME/.zshrc"; do
@@ -228,9 +257,16 @@ _cmd_uninstall() {
 			sed -i.bak '$!{ /^$/{ N; /\n# termeric — golden prompt/d; P; D; }; }' "$rc_file" 2>/dev/null ||
 				sed -i '' '$!{ /^$/{ N; /\n# termeric — golden prompt/d; P; D; }; }' "$rc_file" 2>/dev/null || true
 			rm -f "${rc_file}.bak"
-			# Remove block without leading blank (clean installs)
+			# Remove block with comment marker (clean installs)
 			sed -i.bak '/# termeric — golden prompt/,+3d' "$rc_file" 2>/dev/null ||
 				sed -i '' '/# termeric — golden prompt/,+3d' "$rc_file" 2>/dev/null || true
+			rm -f "${rc_file}.bak"
+			# Fallback: remove block without comment marker (old installs)
+			sed -i.bak '/^if \[ -f ~\/\.termeric_bash \]; then$/,+3d' "$rc_file" 2>/dev/null ||
+				sed -i '' '/^if \[ -f ~\/\.termeric_bash \]; then$/,+3d' "$rc_file" 2>/dev/null || true
+			rm -f "${rc_file}.bak"
+			sed -i.bak '/^if \[ -f ~\/\.termeric_zsh \]; then$/,+3d' "$rc_file" 2>/dev/null ||
+				sed -i '' '/^if \[ -f ~\/\.termeric_zsh \]; then$/,+3d' "$rc_file" 2>/dev/null || true
 			rm -f "${rc_file}.bak"
 		fi
 	done
@@ -243,13 +279,21 @@ _cmd_uninstall() {
 		sed -i.bak '$!{ /^$/{ N; /\n# termeric — golden prompt/d; P; D; }; }' "$fish_config_dir/config.fish" 2>/dev/null ||
 			sed -i '' '$!{ /^$/{ N; /\n# termeric — golden prompt/d; P; D; }; }' "$fish_config_dir/config.fish" 2>/dev/null || true
 		rm -f "${fish_config_dir}/config.fish.bak"
-		# Remove block without leading blank (clean installs)
+		# Remove block with comment marker (clean installs)
 		sed -i.bak '/# termeric — golden prompt/,+1d' "$fish_config_dir/config.fish" 2>/dev/null ||
 			sed -i '' '/# termeric — golden prompt/,+1d' "$fish_config_dir/config.fish" 2>/dev/null || true
+		rm -f "${fish_config_dir}/config.fish.bak"
+		# Fallback: remove source line without comment marker (old installs)
+		sed -i.bak '/^source ~\/\.config\/fish\/termeric_fish$/d' "$fish_config_dir/config.fish" 2>/dev/null ||
+			sed -i '' '/^source ~\/\.config\/fish\/termeric_fish$/d' "$fish_config_dir/config.fish" 2>/dev/null || true
 		rm -f "${fish_config_dir}/config.fish.bak"
 	fi
 
 	rm -f "$HOME/.local/bin/termeric"
+
+	# Clean up cached git status files
+	local cache_dir="${XDG_CACHE_HOME:-$HOME/.cache}/termeric"
+	[ -d "$cache_dir" ] && rm -rf "$cache_dir" && _info "Removed git cache at $cache_dir"
 
 	_ok "Termeric removed. Restart your shell for changes to take effect."
 }
@@ -275,9 +319,12 @@ _cmd_config() {
 # termeric configuration
 # Set these to override defaults
 
-# PROMPT_COLOR_MODE=on   # Powerline mode (on/off)
-# PROMPT_EXIT_CODE=on   # Exit indicator (on/off)
-# PROMPT_CMD_TIME=off   # Command duration (on/off)
+# PROMPT_COLOR=on        # Master color switch (on/off)
+# PROMPT_SHOW_USER=on    # Show user@host (on/off)
+# PROMPT_SHOW_EXIT=on    # Show exit code on failure (on/off)
+# PROMPT_SHOW_DIR=on     # Show directory path (on/off)
+# PROMPT_SHOW_SSH=on     # Show SSH indicator (on/off)
+# PROMPT_SHOW_TIME=off   # Show command duration (on/off)
 CONF
 		_info "Created config at $config_file"
 	fi
@@ -291,25 +338,38 @@ _cmd_status() {
 	echo "─────────────────────────────────────"
 
 	# Shell
-	printf "  Shell:         %s\n" "$(_detect_shell)"
+	local shell_name="$(_detect_shell)"
+	printf "  %-18s %s\n" "Shell:" "$shell_name"
 
-	# Installed files
-	for f in ~/.termeric_bash ~/.termeric_zsh ~/.config/fish/termeric_fish; do
-		if [ -f "$f" ]; then
-			printf "%b" "  $(basename $f) ${GREEN}installed${RESET}\n"
-		else
-			printf "%b" "  $(basename $f) ${RED}not found${RESET}\n"
-		fi
-	done
+	# Active shell files
+	local dotfile rc_file
+	case "$shell_name" in
+	bash)
+		dotfile="$HOME/.termeric_bash"
+		rc_file="$HOME/.bashrc"
+		;;
+	zsh)
+		dotfile="$HOME/.termeric_zsh"
+		rc_file="$HOME/.zshrc"
+		;;
+	fish)
+		dotfile="$HOME/.config/fish/termeric_fish"
+		rc_file="$HOME/.config/fish/config.fish"
+		;;
+	esac
 
-	# Sourced in rc
-	for rc in ~/.bashrc ~/.zshrc ~/.config/fish/config.fish; do
-		if [ -f "$rc" ] && grep -q "termeric" "$rc" 2>/dev/null; then
-			printf "%b\n" "  $(basename $rc) ${GREEN}sourced${RESET}"
-		else
-			printf "%b\n" "  $(basename $rc) ${RED}not sourced${RESET}"
-		fi
-	done
+	local dotfile_label="$(basename "$dotfile"):"
+	if [ -f "$dotfile" ]; then
+		printf "  %-18s ${GREEN}%s${RESET}\n" "$dotfile_label" "installed"
+	else
+		printf "  %-18s ${RED}%s${RESET}\n" "$dotfile_label" "not found"
+	fi
+	local rc_label="$(basename "$rc_file"):"
+	if [ -f "$rc_file" ] && grep -q "termeric" "$rc_file" 2>/dev/null; then
+		printf "  %-18s ${GREEN}%s${RESET}\n" "$rc_label" "sourced"
+	else
+		printf "  %-18s ${RED}%s${RESET}\n" "$rc_label" "not sourced"
+	fi
 
 	# Font
 	if fc-list 2>/dev/null | grep -qi "meslo.*nerd\|nerd.*meslo" ||
@@ -323,19 +383,40 @@ _cmd_status() {
 	# Toggle states
 	echo ""
 	printf "%b%b%b" "${BOLD}" "Toggles" "${RESET}\n"
-	printf "  %-20s %s\n" "PROMPT_COLOR_MODE" "${PROMPT_COLOR_MODE:-on}"
-	printf "  %-20s %s\n" "PROMPT_EXIT_CODE" "${PROMPT_EXIT_CODE:-on}"
-	printf "  %-20s %s\n" "PROMPT_CMD_TIME" "${PROMPT_CMD_TIME:-off}"
-	printf "  %-20s %s\n" "PROMPT_USER_HOST" "${PROMPT_USER_HOST:-off}"
+
+	_show_toggle() {
+		local name="$1" default="$2" env_val rc_val
+		eval "env_val=\"\${$name:-$default}\""
+		rc_val="$(_get_rc_val "$name" "$shell_name")"
+		printf "  %-20s %s" "$name" "$env_val"
+		if [ -n "$rc_val" ] && [ "$rc_val" != "$default" ]; then
+			printf " (rc: %s)" "$rc_val"
+		fi
+		printf "\n"
+	}
+
+	_show_toggle PROMPT_COLOR on
+	_show_toggle PROMPT_SHOW_USER on
+	_show_toggle PROMPT_SHOW_EXIT on
+	_show_toggle PROMPT_SHOW_DIR on
+	_show_toggle PROMPT_SHOW_SSH on
+	_show_toggle PROMPT_SHOW_TIME off
+	_show_toggle PROMPT_STYLE 0
 
 	# Git cache
-	if [ -d .git ]; then
-		local cache=".git/.termeric_cache"
-		if [ -f "$cache" ]; then
-			printf "%b" "  Git cache:     ${GREEN}active${RESET}\n"
+	local cache_dir="${XDG_CACHE_HOME:-$HOME/.cache}/termeric"
+	if [ -d "$cache_dir" ]; then
+		local count
+		count=$(ls "$cache_dir"/*.result 2>/dev/null | wc -l | tr -d ' ')
+		if [ "$count" -gt 0 ] 2>/dev/null; then
+			printf "%b" "  Git cache:     ${GREEN}${count} repo(s) cached${RESET}\n"
 		else
 			printf "%b" "  Git cache:     ${GOLD}cold${RESET}\n"
 		fi
+		printf "  Cache dir:     %s\n" "$cache_dir"
+	else
+		printf "%b" "  Git cache:     ${GOLD}cold${RESET}\n"
+		printf "  Cache dir:     %s\n" "$cache_dir"
 	fi
 
 	echo ""
@@ -358,12 +439,11 @@ _cmd_font() {
 		if [ "$(uname)" = "Darwin" ]; then
 			mkdir -p ~/Library/Fonts
 			cp "$bundled_dir"/*.ttf ~/Library/Fonts/
-			_ok "Installed bundled MesloLGS Nerd Font to ~/Library/Fonts/"
+			_ok "Installed bundled Meslo Nerd Font to ~/Library/Fonts/"
 		else
-			mkdir -p ~/.local/share/fonts
-			cp "$bundled_dir"/*.ttf ~/.local/share/fonts/
-			fc-cache -f 2>/dev/null || true
-			_ok "Installed bundled MesloLGS Nerd Font to ~/.local/share/fonts/"
+			mkdir -p ~/.local/share/fonts 2>/dev/null
+			cp meslo-nerd/*.ttf ~/.local/share/fonts/
+			_ok "Installed bundled Meslo Nerd Font to ~/.local/share/fonts/"
 		fi
 	elif command -v brew &>/dev/null; then
 		brew install --cask font-meslo-lg-nerd-font
@@ -389,7 +469,7 @@ _cmd_font() {
 		_ok "Font downloaded and installed"
 	fi
 
-	_info "Set your terminal to use 'MesloLGS Nerd Font'."
+	_info "Set your terminal to use 'MesloLGL Nerd Font'."
 }
 
 # ── Doctor ──────────────────────────────────────────────────────
@@ -451,12 +531,35 @@ _cmd_doctor() {
 
 	# Toggle states
 	echo ""
+	local shell_name="$(_detect_shell)"
 	printf "%b%b%b" "${BOLD}" "Toggle states" "${RESET}\n"
 	echo "─────────────────────────────────────"
-	printf "  %-22s %s\n" "PROMPT_COLOR_MODE=${PROMPT_COLOR_MODE:-on}" "($(if [ "${PROMPT_COLOR_MODE:-on}" = "off" ]; then echo "colored text"; else echo "powerline"; fi))"
-	printf "  %-22s %s\n" "PROMPT_EXIT_CODE=${PROMPT_EXIT_CODE:-on}" "($(if [ "${PROMPT_EXIT_CODE:-on}" = "off" ]; then echo "disabled"; else echo "enabled"; fi))"
-	printf "  %-22s %s\n" "PROMPT_CMD_TIME=${PROMPT_CMD_TIME:-off}" "($(if [ "${PROMPT_CMD_TIME:-off}" = "on" ]; then echo "enabled"; else echo "disabled"; fi))"
-	printf "  %-22s %s\n" "PROMPT_USER_HOST=${PROMPT_USER_HOST:-off}" "($(if [ "${PROMPT_USER_HOST:-off}" = "on" ]; then echo "enabled"; else echo "disabled"; fi))"
+
+	_doctor_toggle() {
+		local name="$1" default="$2" desc_func="$3" env_val rc_val desc
+		eval "env_val=\"\${$name:-$default}\""
+		rc_val="$(_get_rc_val "$name" "$shell_name")"
+		if [ -n "$desc_func" ]; then
+			desc="$("$desc_func" "$env_val")"
+		fi
+		if [ "$env_val" = "off" ] 2>/dev/null; then
+			printf "  %-30s (disabled)" "${name}=${env_val}"
+		else
+			printf "  %-30s (${desc:-enabled})" "${name}=${env_val}"
+		fi
+		if [ -n "$rc_val" ] && [ "$rc_val" != "$default" ]; then
+			printf " rc: %s" "$rc_val"
+		fi
+		printf "\n"
+	}
+
+	_doctor_toggle PROMPT_COLOR on ""
+	_doctor_toggle PROMPT_SHOW_USER on ""
+	_doctor_toggle PROMPT_SHOW_EXIT on ""
+	_doctor_toggle PROMPT_SHOW_DIR on ""
+	_doctor_toggle PROMPT_SHOW_SSH on ""
+	_doctor_toggle PROMPT_SHOW_TIME off ""
+	_doctor_toggle PROMPT_STYLE 0 _get_style_desc
 	echo ""
 
 	# Font
