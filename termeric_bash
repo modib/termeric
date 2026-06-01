@@ -296,7 +296,7 @@ __termeric_ps1() {
 
         # Exit code (only show on failure) — first segment
         if [ "$rc" -ne 0 ] && [ "${PROMPT_SHOW_EXIT:-on}" != "off" ]; then
-            data+="${BG_FAIL}${ARROW_DARK} ${psep}${R}${BG_FAIL}${TXT_FAIL} ✘ $rc ${R}"
+            data+="${BG_FAIL} ${BG_FAIL}${ARROW_DARK}${psep}${BG_FAIL}${TXT_FAIL} ✘ $rc ${R}"
             arrow="${ARROW_DARK}"
         fi
 
@@ -305,7 +305,7 @@ __termeric_ps1() {
             if [ -n "$arrow" ]; then
                 data+="${BG_USER}${arrow}${psep}${R}${BG_USER}${B}${TXT_BG}"
             else
-                data+="${BG_FAIL}${ARROW_DARK} ${psep}${R}${BG_USER}${B}${TXT_BG}"
+                data+="${BG_FAIL} ${BG_USER}${ARROW_DARK}${psep}${BG_USER}${B}${TXT_BG}"
             fi
             if [ "${PROMPT_SHOW_SSH:-on}" != "off" ] && [ -n "$SSH_CONNECTION" ]; then
                 data+=" \u@ssh:\h ${R}"
@@ -320,7 +320,7 @@ __termeric_ps1() {
             if [ -n "$arrow" ]; then
                 data+="${BG_PATH}${arrow}${psep}${R}${BG_PATH}${B}${TXT_BG_LIT}"
             else
-                data+="${BG_FAIL}${ARROW_DARK} ${psep}${R}${BG_PATH}${B}${TXT_BG_LIT}"
+                data+="${BG_FAIL} ${BG_PATH}${ARROW_DARK}${psep}${BG_PATH}${B}${TXT_BG_LIT}"
             fi
             data+=" \w ${R}"
             arrow="${ARROW_PATH}"
@@ -333,7 +333,7 @@ __termeric_ps1() {
             if [ -n "$arrow" ]; then
                 data+="${BG_GIT}${arrow}${psep}${R}${BG_GIT}${B}${TXT_BG_LIT}"
             else
-                data+="${BG_FAIL}${ARROW_DARK} ${psep}${R}${BG_GIT}${B}${TXT_BG_LIT}"
+                data+="${BG_FAIL} ${BG_GIT}${ARROW_DARK}${psep}${BG_GIT}${B}${TXT_BG_LIT}"
             fi
             data+=" $git_info ${R}"
             arrow="${ARROW_GIT}"
@@ -346,7 +346,7 @@ __termeric_ps1() {
                 if [ -n "$arrow" ]; then
                     data+="${BG_TIME}${arrow}${psep}${R}${BG_TIME}${B}${TXT_BG}"
                 else
-                    data+="${BG_FAIL}${ARROW_DARK} ${psep}${R}${BG_TIME}${B}${TXT_BG}"
+                    data+="${BG_FAIL} ${BG_TIME}${ARROW_DARK}${psep}${BG_TIME}${B}${TXT_BG}"
                 fi
                 data+=" ${duration}s ${R}"
                 arrow="${ARROW_TIME}"

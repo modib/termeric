@@ -338,7 +338,7 @@ function fish_prompt
 
         # Exit code (only show on failure) — first segment
         if test $rc -ne 0; and test "$PROMPT_SHOW_EXIT" != off
-            set data "$data$BG_FAIL$ARROW_DARK $PSEP$R$BG_FAIL$TXT_FAIL ✘ $rc $R"
+            set data "$data$BG_FAIL $BG_FAIL$ARROW_DARK$PSEP$BG_FAIL$TXT_FAIL ✘ $rc $R"
             set arrow "$ARROW_DARK"
         end
 
@@ -347,7 +347,7 @@ function fish_prompt
             if test -n "$arrow"
                 set data "$data$BG_USER$arrow$PSEP$R$BG_USER$TXT_BG"
             else
-                set data "$data$BG_FAIL$ARROW_DARK $PSEP$R$BG_USER$TXT_BG"
+                set data "$data$BG_FAIL $BG_USER$ARROW_DARK$PSEP$BG_USER$TXT_BG"
             end
             if test "$PROMPT_SHOW_SSH" != off; and test -n "$SSH_CONNECTION"
                 set data "$data $USER@ssh:$_tmerm_hostname $R"
@@ -362,7 +362,7 @@ function fish_prompt
             if test -n "$arrow"
                 set data "$data$BG_PATH$arrow$PSEP$R$BG_PATH$TXT_BG_LIT"
             else
-                set data "$data$BG_FAIL$ARROW_DARK $PSEP$R$BG_PATH$TXT_BG_LIT"
+                set data "$data$BG_FAIL $BG_PATH$ARROW_DARK$PSEP$BG_PATH$TXT_BG_LIT"
             end
             set data "$data "(prompt_pwd)" $R"
             set arrow "$ARROW_PATH"
@@ -374,7 +374,7 @@ function fish_prompt
             if test -n "$arrow"
                 set data "$data$BG_GIT$arrow$PSEP$R$BG_GIT$TXT_BG_LIT"
             else
-                set data "$data$BG_FAIL$ARROW_DARK $PSEP$R$BG_GIT$TXT_BG_LIT"
+                set data "$data$BG_FAIL $BG_GIT$ARROW_DARK$PSEP$BG_GIT$TXT_BG_LIT"
             end
             set data "$data $git_info $R"
             set arrow "$ARROW_GIT"
@@ -387,7 +387,7 @@ function fish_prompt
                 if test -n "$arrow"
                     set data "$data$BG_TIME$arrow$PSEP$R$BG_TIME$TXT_BG"
                 else
-                    set data "$data$BG_FAIL$ARROW_DARK $PSEP$R$BG_TIME$TXT_BG"
+                    set data "$data$BG_FAIL $BG_TIME$ARROW_DARK$PSEP$BG_TIME$TXT_BG"
                 end
                 set data "$data $duration s $R"
                 set arrow "$ARROW_TIME"

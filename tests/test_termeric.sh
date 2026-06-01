@@ -416,19 +416,19 @@ else
     skip "fish not available — skipping fish tests"
 fi
 
-# ── Leading cap space color: ARROW_* must precede space ──
-# All leading cap patterns use BG_FAIL background with ARROW_DARK foreground
-if grep -qE '\$\{BG_FAIL\}\$\{ARROW_DARK\} ' "$TERMERIC_DIR/termeric_zsh" 2>/dev/null; then
+# ── Leading cap space color: BG_FAIL precedes space ──
+# All leading cap patterns use BG_FAIL background with a space before the next segment's arrow
+if grep -qE '\$\{BG_FAIL\} \$\{BG_' "$TERMERIC_DIR/termeric_zsh" 2>/dev/null; then
     pass "zsh leading cap: BG_FAIL before space"
 else
     fail "zsh leading cap: missing BG_FAIL pattern"
 fi
-if grep -qE '\$\{BG_FAIL\}\$\{ARROW_DARK\} ' "$TERMERIC_DIR/termeric_bash" 2>/dev/null; then
+if grep -qE '\$\{BG_FAIL\} \$\{BG_' "$TERMERIC_DIR/termeric_bash" 2>/dev/null; then
     pass "bash leading cap: BG_FAIL before space"
 else
     fail "bash leading cap: missing BG_FAIL pattern"
 fi
-if grep -qE '\$BG_FAIL\$ARROW_DARK ' "$TERMERIC_DIR/termeric_fish" 2>/dev/null; then
+if grep -qE '\$BG_FAIL \$BG_' "$TERMERIC_DIR/termeric_fish" 2>/dev/null; then
     pass "fish leading cap: BG_FAIL before space"
 else
     fail "fish leading cap: missing BG_FAIL pattern"
