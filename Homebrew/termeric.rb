@@ -2,7 +2,7 @@ class Termeric < Formula
   desc "Golden prompts for your terminal"
   homepage "https://modib.github.io/termeric/"
   url "https://github.com/modib/termeric/archive/refs/tags/v1.3.0.tar.gz"
-  sha256 "UPDATE_ME_AFTER_TAG"
+  sha256 "b3423ade290d5b504d633f7c98e2f1a8f3772324aa4ae1188d396409e0853dbf"
   license "MIT"
   head "https://github.com/modib/termeric.git", branch: "main"
 
