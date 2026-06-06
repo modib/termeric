@@ -89,6 +89,13 @@ All features controlled via `on`/`off` values. Backward compat: `1`/`0` also acc
 - Add trailing space after line 2 arrow for cleaner command alignment
 - Fix install/uninstall blank-line accumulation in rc files
 
+### Phase 2.5 — Done
+- Fix `PROMPT_COMMAND` overwrite in bash prompt (use array/scalar append instead of clobber)
+- Add `PROMPT_STYLE` to all docs (install.sh help, Homebrew caveats, test suite)
+- Align post-install messages across `install.sh` and `termeric install` (source rc instead of exec)
+- Unify version across all files (VERSION, bin/termeric, install.sh)
+- Add PROMPT_COMMAND preservation tests to test suite
+
 ### Phase 3 — Planned
 - Python virtualenv/conda segment (`PROMPT_VENV=off`)
 - Node.js version segment (`PROMPT_NODE=off`)

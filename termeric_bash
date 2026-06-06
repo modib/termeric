@@ -396,4 +396,11 @@ __termeric_ps1() {
     return "$rc"
 }
 
-PROMPT_COMMAND=__termeric_ps1
+# Preserve any existing PROMPT_COMMAND (VTE, systemd-osc, etc.)
+if [[ "$(declare -p PROMPT_COMMAND 2>/dev/null)" =~ ^declare\ -a ]]; then
+    # PROMPT_COMMAND is an array — prepend so prompt function runs first
+    PROMPT_COMMAND=("__termeric_ps1" "${PROMPT_COMMAND[@]}")
+else
+    # Scalar — chain with existing
+    PROMPT_COMMAND="__termeric_ps1${PROMPT_COMMAND:+; $PROMPT_COMMAND}"
+fi

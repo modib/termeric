@@ -4,7 +4,7 @@ set -euo pipefail
 DOTFILES_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 # ── Version ─────────────────────────────────────────────────────
-TERMERIC_VERSION="${TERMERIC_VERSION:-1.1.0}"
+TERMERIC_VERSION="${TERMERIC_VERSION:-1.3.0}"
 
 # ── Colors ──────────────────────────────────────────────────────
 if [ -t 1 ]; then
@@ -44,6 +44,7 @@ Environment variables:
   PROMPT_SHOW_DIR=on     Show directory path (default: on)
   PROMPT_SHOW_SSH=on     Show SSH indicator (default: on)
   PROMPT_SHOW_TIME=off   Show command duration (default: off)
+  PROMPT_STYLE=0         Prompt style: 0=powerline, 1=basename, 2=abbreviated, 3=full path, 4=long text (default: 0)
 EOF
 }
 
@@ -246,7 +247,18 @@ do_install() {
 	fi
 
 	echo ""
-	_ok "Termeric installed! Run ${BOLD}exec $shell_name${RESET} or open a new terminal."
+	_ok "Termeric installed!"
+	case "$shell_name" in
+	zsh|bash)
+		_info "Run ${BOLD}source ~/.${shell_name}rc${RESET} or open a new terminal."
+		;;
+	fish)
+		_info "Run ${BOLD}source ~/.config/fish/config.fish${RESET} or open a new terminal."
+		;;
+	*)
+		_info "Run ${BOLD}exec $shell_name${RESET} or open a new terminal."
+		;;
+	esac
 }
 
 # ── Main ────────────────────────────────────────────────────────

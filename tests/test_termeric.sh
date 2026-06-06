@@ -35,7 +35,11 @@ header "1. Syntax checks"
 # ================================================================
 
 check_syntax() {
-    local file="$1" name="$2" cmd="$3"
+    local file="$1" name="$2" cmd="$3" lang="$4"
+    if ! command -v "$lang" &>/dev/null; then
+        skip "syntax: $name ($lang not installed)"
+        return 0
+    fi
     if eval "$cmd" 2>/dev/null; then
         pass "syntax: $name"
         return 0
@@ -45,12 +49,16 @@ check_syntax() {
     fi
 }
 
-check_syntax "$TERMERIC_DIR/termeric_bash" "termeric_bash"      "bash -n '$TERMERIC_DIR/termeric_bash'"
-check_syntax "$TERMERIC_DIR/termeric_zsh"  "termeric_zsh"       "zsh -n  '$TERMERIC_DIR/termeric_zsh'"
-check_syntax "$TERMERIC_DIR/bin/termeric"  "bin/termeric"       "bash -n '$TERMERIC_DIR/bin/termeric'"
-check_syntax "$TERMERIC_DIR/install.sh"    "install.sh"         "bash -n '$TERMERIC_DIR/install.sh'"
-check_syntax "$TERMERIC_DIR/termeric_fish" "termeric_fish"      "fish --no-execute '$TERMERIC_DIR/termeric_fish'" || SKIP_FISH_TESTS=1
-check_syntax "$TERMERIC_DIR/Homebrew/termeric.rb" "Homebrew formula" "ruby -c '$TERMERIC_DIR/Homebrew/termeric.rb'"
+check_syntax "$TERMERIC_DIR/termeric_bash" "termeric_bash"      "bash -n '$TERMERIC_DIR/termeric_bash'" bash
+check_syntax "$TERMERIC_DIR/termeric_zsh"  "termeric_zsh"       "zsh -n  '$TERMERIC_DIR/termeric_zsh'"  zsh
+check_syntax "$TERMERIC_DIR/bin/termeric"  "bin/termeric"       "bash -n '$TERMERIC_DIR/bin/termeric'" bash
+check_syntax "$TERMERIC_DIR/install.sh"    "install.sh"         "bash -n '$TERMERIC_DIR/install.sh'"   bash
+if command -v fish &>/dev/null; then
+    check_syntax "$TERMERIC_DIR/termeric_fish" "termeric_fish" "fish --no-execute '$TERMERIC_DIR/termeric_fish'" fish
+else
+    skip "syntax: termeric_fish (fish not installed)"
+fi
+check_syntax "$TERMERIC_DIR/Homebrew/termeric.rb" "Homebrew formula" "ruby -c '$TERMERIC_DIR/Homebrew/termeric.rb'" ruby
 
 # ================================================================
 header "2. File existence"
@@ -115,6 +123,16 @@ for doc_file in "$TERMERIC_DIR/bin/termeric" "$TERMERIC_DIR/README.md" "$TERMERI
     for old in "PROMPT_COLOR_MODE" "PROMPT_EXIT_CODE" "PROMPT_CMD_TIME" "PROMPT_USER_HOST" "PROMPT_SHORT"; do
         if grep -q "$old" "$doc_file" 2>/dev/null; then
             fail "$name: still has OLD toggle $old"
+        fi
+    done
+done
+
+# Verify ALL toggle names present in ALL doc/CLI files
+for doc_file in "$TERMERIC_DIR/bin/termeric" "$TERMERIC_DIR/README.md" "$TERMERIC_DIR/install.sh" "$TERMERIC_DIR/Homebrew/termeric.rb" "$TERMERIC_DIR/AGENTS.md"; do
+    name=$(basename "$doc_file")
+    for toggle in "PROMPT_COLOR" "PROMPT_STYLE" "PROMPT_SHOW_USER" "PROMPT_SHOW_EXIT" "PROMPT_SHOW_DIR" "PROMPT_SHOW_SSH" "PROMPT_SHOW_TIME"; do
+        if ! grep -q "$toggle" "$doc_file" 2>/dev/null; then
+            fail "$name: missing toggle $toggle"
         fi
     done
 done
@@ -451,7 +469,57 @@ fi
 rm -rf "$rc_test_dir"
 
 # ================================================================
-header "6. Path shortening"
+header "6. PROMPT_COMMAND preservation"
+# ================================================================
+
+# Verify PROMPT_COMMAND appends (doesn't overwrite)
+pc_bash=$(bash -c '
+    PROMPT_COMMAND=( "existing_func" )
+    source "'$TERMERIC_DIR'/termeric_bash" >/dev/null 2>&1
+    declare -p PROMPT_COMMAND 2>/dev/null
+' 2>/dev/null) || true
+if echo "$pc_bash" | grep -q "__termeric_ps1"; then
+    pass "PROMPT_COMMAND: contains __termeric_ps1 after source"
+else
+    fail "PROMPT_COMMAND: __termeric_ps1 not found"
+fi
+
+# Array mode: __termeric_ps1 should be first
+if echo "$pc_bash" | grep -q "declare -a"; then
+    if echo "$pc_bash" | grep -q '__termeric_ps1.*existing_func'; then
+        pass "PROMPT_COMMAND: __termeric_ps1 prepended (array)"
+    else
+        fail "PROMPT_COMMAND: array order incorrect"
+    fi
+    pass "PROMPT_COMMAND: preserved as array"
+else
+    # Scalar mode
+    pc_scalar=$(bash -c '
+        PROMPT_COMMAND="old_func"
+        source "'$TERMERIC_DIR'/termeric_bash" >/dev/null 2>&1
+        printf "%s" "$PROMPT_COMMAND"
+    ' 2>/dev/null) || true
+    if echo "$pc_scalar" | grep -q "__termeric_ps1.*old_func"; then
+        pass "PROMPT_COMMAND: __termeric_ps1 chained with ; (scalar)"
+    else
+        fail "PROMPT_COMMAND: scalar chaining failed"
+    fi
+fi
+
+# Empty PROMPT_COMMAND should still work
+pc_empty=$(bash -c '
+    unset PROMPT_COMMAND
+    source "'$TERMERIC_DIR'/termeric_bash" >/dev/null 2>&1
+    printf "%s" "$PROMPT_COMMAND"
+' 2>/dev/null) || true
+if [ "$pc_empty" = "__termeric_ps1" ]; then
+    pass "PROMPT_COMMAND: works with unset PROMPT_COMMAND"
+else
+    fail "PROMPT_COMMAND: unset case failed (got: $pc_empty)"
+fi
+
+# ================================================================
+header "7. Path shortening"
 # ================================================================
 
 # bash
@@ -471,7 +539,7 @@ else
 fi
 
 # ================================================================
-header "7. Install/uninstall simulation"
+header "8. Install/uninstall simulation"
 # ================================================================
 
 TMPDIR=$(mktemp -d)
@@ -558,7 +626,7 @@ fi
 rm -rf "$rc_test_dir"
 
 # ================================================================
-header "8. Uninstall fallback: blocks without comment markers"
+header "9. Uninstall fallback: blocks without comment markers"
 # ================================================================
 
 TMPDIR2=$(mktemp -d)
@@ -596,7 +664,7 @@ trap - EXIT
 rm -rf "$TMPDIR2"
 
 # ================================================================
-header "9. Default values"
+header "10. Default values"
 # ================================================================
 
 # Bash and zsh use inline defaults via ${VAR:-default}; fish sets them with set -g
@@ -639,7 +707,7 @@ else
 fi
 
 # ================================================================
-header "10. Version consistency"
+header "11. Version consistency"
 # ================================================================
 
 version_file=$(cat "$TERMERIC_DIR/VERSION" 2>/dev/null | tr -d '[:space:]')
@@ -650,8 +718,16 @@ else
     fail "VERSION mismatch: file='$version_file' cli='$version_cli'"
 fi
 
+# Check install.sh version
+version_inst=$(grep 'TERMERIC_VERSION=' "$TERMERIC_DIR/install.sh" 2>/dev/null | grep -oP '\d+\.\d+\.\d+' || true)
+if [ "$version_file" = "$version_inst" ]; then
+    pass "VERSION file matches install.sh: $version_file"
+else
+    fail "VERSION mismatch: file='$version_file' install.sh='$version_inst'"
+fi
+
 # ================================================================
-header "11. Homebrew formula integrity"
+header "12. Homebrew formula integrity"
 # ================================================================
 
 formula="$TERMERIC_DIR/Homebrew/termeric.rb"
@@ -670,6 +746,13 @@ else
     fail "Homebrew formula: $formula_ok/7 referenced files exist"
 fi
 
+# Check PROMPT_STYLE is in formula caveats
+if grep -q "PROMPT_STYLE" "$formula" 2>/dev/null; then
+    pass "Homebrew formula: PROMPT_STYLE in caveats"
+else
+    fail "Homebrew formula: PROMPT_STYLE missing from caveats"
+fi
+
 # Check formula URL version matches VERSION
 if grep -q "v${version_file}.tar.gz" "$formula" 2>/dev/null; then
     pass "Homebrew formula: URL version matches VERSION ($version_file)"
@@ -678,7 +761,7 @@ else
 fi
 
 # ================================================================
-header "12. Complete files — old toggle names check"
+header "13. Complete files — old toggle names check"
 # ================================================================
 
 # Check ALL non-shell files for remaining old toggle names
