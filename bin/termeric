@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-TERMERIC_VERSION="1.3.0"
+TERMERIC_VERSION="1.4.0"
 TERMERIC_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 
 # Detect share directory (Homebrew pkgshare puts files under share/termeric/)
@@ -44,7 +44,8 @@ _show_help() {
 		"  font          Install Meslo Nerd Font" \
 		"  doctor        Check system compatibility" \
 		"  version       Show version" \
-		"  help          Show this message" \
+		"  help, -h, --help" \
+		"                Show this message" \
 		"" \
 		"${BOLD}Examples:${RESET}" \
 		"  termeric install           # quick setup" \
@@ -59,9 +60,9 @@ _show_help() {
 		"    PROMPT_SHOW_USER=on    Show user@host segment (default: on)" \
 		"    PROMPT_SHOW_EXIT=on    Show exit code on failure (default: on)" \
 		"    PROMPT_SHOW_DIR=on     Show directory path (default: on)" \
-		"    PROMPT_SHOW_SSH=on     Show SSH indicator (default: on)" \
-		"    PROMPT_SHOW_TIME=off   Show command duration (default: off)" \
-		"    PROMPT_STYLE=0         Style: 0=powerline, 1=basename, 2=abbreviated," \
+		"    PROMPT_SHOW_SSH=on     Show SSH indicator when connected (default: on)" \
+		"    PROMPT_SHOW_TIME=off   Show command duration when >=2s (default: off)" \
+		"    PROMPT_STYLE=0         Prompt style: 0=powerline, 1=basename, 2=abbreviated," \
 		"                           3=full path, 4=long text (default: 0)" \
 		"" \
 		"${BOLD}Docs:${RESET}" \
@@ -111,8 +112,13 @@ _cmd_install() {
 	for arg in "$@"; do
 		case "$arg" in
 		--font) install_font=1 ;;
+		--help | -h)
+			_show_help
+			exit 0
+			;;
 		*)
 			_err "Unknown option: $arg"
+			_show_help
 			exit 1
 			;;
 		esac
@@ -190,7 +196,7 @@ _cmd_install() {
 			} >>"$HOME/.zshrc"
 			_ok "Added source line to ~/.zshrc"
 		else
-			_info "~/.zshrc already sources termeric (${existing_count} references found)"
+			_info "~/.zshrc already sources termeric"
 		fi
 	fi
 
@@ -242,6 +248,7 @@ _cmd_install() {
 		_info "Run ${BOLD}exec $shell_name${RESET} or open a new terminal."
 		;;
 	esac
+	_info "Run ${BOLD}termeric doctor${RESET} to verify your setup and see toggle states."
 }
 
 # ── Uninstall ───────────────────────────────────────────────────
@@ -327,7 +334,8 @@ _cmd_config() {
 # Set these to override defaults
 
 # PROMPT_COLOR=on        # Master color switch (on/off)
-# PROMPT_SHOW_USER=on    # Show user@host (on/off)
+# PROMPT_STYLE=0         # Prompt style: 0=powerline, 1=basename, 2=abbreviated, 3=full path, 4=long text
+# PROMPT_SHOW_USER=on    # Show user@host segment (on/off)
 # PROMPT_SHOW_EXIT=on    # Show exit code on failure (on/off)
 # PROMPT_SHOW_DIR=on     # Show directory path (on/off)
 # PROMPT_SHOW_SSH=on     # Show SSH indicator (on/off)
@@ -363,19 +371,27 @@ _cmd_status() {
 		dotfile="$HOME/.config/fish/termeric_fish"
 		rc_file="$HOME/.config/fish/config.fish"
 		;;
+	*)
+		dotfile=""
+		rc_file=""
+		;;
 	esac
 
-	local dotfile_label="$(basename "$dotfile"):"
-	if [ -f "$dotfile" ]; then
-		printf "  %-18s ${GREEN}%s${RESET}\n" "$dotfile_label" "installed"
-	else
-		printf "  %-18s ${RED}%s${RESET}\n" "$dotfile_label" "not found"
+	if [ -n "$dotfile" ]; then
+		local dotfile_label="$(basename "$dotfile"):"
+		if [ -f "$dotfile" ]; then
+			printf "  %-18s ${GREEN}%s${RESET}\n" "$dotfile_label" "installed"
+		else
+			printf "  %-18s ${RED}%s${RESET}\n" "$dotfile_label" "not found"
+		fi
 	fi
-	local rc_label="$(basename "$rc_file"):"
-	if [ -f "$rc_file" ] && grep -q "termeric" "$rc_file" 2>/dev/null; then
-		printf "  %-18s ${GREEN}%s${RESET}\n" "$rc_label" "sourced"
-	else
-		printf "  %-18s ${RED}%s${RESET}\n" "$rc_label" "not sourced"
+	if [ -n "$rc_file" ]; then
+		local rc_label="$(basename "$rc_file"):"
+		if [ -f "$rc_file" ] && grep -q "termeric" "$rc_file" 2>/dev/null; then
+			printf "  %-18s ${GREEN}%s${RESET}\n" "$rc_label" "sourced"
+		else
+			printf "  %-18s ${RED}%s${RESET}\n" "$rc_label" "not sourced"
+		fi
 	fi
 
 	# Font
@@ -405,14 +421,24 @@ _cmd_status() {
 
 	# Toggle states
 	echo ""
-	printf "%b%b%b" "${BOLD}" "Toggles" "${RESET}\n"
+	printf "%b%b%b" "${BOLD}" "Toggle states" "${RESET}\n"
 
 	_show_toggle() {
-		local name="$1" default="$2" env_val rc_val
+		local name="$1" default="$2"
+		local env_val rc_val env_set
+		eval "env_set=\"\${$name+set}\""
 		eval "env_val=\"\${$name:-$default}\""
 		rc_val="$(_get_rc_val "$name" "$shell_name")"
-		printf "  %-18s %s" "$name" "$env_val"
-		if [ -n "$rc_val" ] && [ "$rc_val" != "$default" ]; then
+		local display_val="${rc_val:-$env_val}"
+		if [ "$display_val" = "off" ] 2>/dev/null; then
+			printf "  %-30s (disabled)" "${name}=${display_val}"
+		else
+			printf "  %-30s (enabled)" "${name}=${display_val}"
+		fi
+		if [ "$env_set" = "set" ] && [ "$env_val" != "$display_val" ]; then
+			printf " (session: %s)" "$env_val"
+		fi
+		if [ -n "$rc_val" ] && [ "$rc_val" != "$display_val" ]; then
 			printf " (rc: %s)" "$rc_val"
 		fi
 		printf "\n"
@@ -448,8 +474,9 @@ _cmd_font() {
 			cp "$bundled_dir"/*.ttf ~/Library/Fonts/
 			_ok "Installed bundled Meslo Nerd Font to ~/Library/Fonts/"
 		else
-			mkdir -p ~/.local/share/fonts 2>/dev/null
-			cp meslo-nerd/*.ttf ~/.local/share/fonts/
+			mkdir -p ~/.local/share/fonts
+			cp "$bundled_dir"/*.ttf ~/.local/share/fonts/
+			fc-cache -f 2>/dev/null || true
 			_ok "Installed bundled Meslo Nerd Font to ~/.local/share/fonts/"
 		fi
 	elif command -v brew &>/dev/null; then
@@ -560,7 +587,9 @@ _cmd_doctor() {
 	echo "─────────────────────────────────────"
 
 	_doctor_toggle() {
-		local name="$1" default="$2" desc_func="$3" env_val rc_val desc display_val
+		local name="$1" default="$2" desc_func="$3"
+		local env_val rc_val desc display_val env_set
+		eval "env_set=\"\${$name+set}\""
 		eval "env_val=\"\${$name:-$default}\""
 		rc_val="$(_get_rc_val "$name" "$shell_name")"
 		display_val="${rc_val:-$env_val}"
@@ -572,7 +601,7 @@ _cmd_doctor() {
 		else
 			printf "  %-30s (${desc:-enabled})" "${name}=${display_val}"
 		fi
-		if [ -n "$env_val" ] && [ "$env_val" != "$display_val" ]; then
+		if [ "$env_set" = "set" ] && [ "$env_val" != "$display_val" ]; then
 			printf " (session: %s)" "$env_val"
 		fi
 		printf "\n"

@@ -4,7 +4,7 @@ set -euo pipefail
 DOTFILES_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 # ── Version ─────────────────────────────────────────────────────
-TERMERIC_VERSION="${TERMERIC_VERSION:-1.3.0}"
+TERMERIC_VERSION="${TERMERIC_VERSION:-1.4.0}"
 
 # ── Colors ──────────────────────────────────────────────────────
 if [ -t 1 ]; then
@@ -31,50 +31,50 @@ ${GOLD}${BOLD}termeric${RESET} install script
 Usage: install.sh [OPTIONS]
 
 Options:
-  --prefix DIR     Install prefix (default: /usr/local)
+  --prefix DIR     Install prefix (default: ~/.local)
   --link           Symlink instead of copy (for dev)
   --font           Install Meslo Nerd Font
   --uninstall      Remove termeric
-  --help           Show this message
+  --help, help     Show this message
 
 Environment variables:
   PROMPT_COLOR=on        Master color switch: on (default) or off
   PROMPT_SHOW_USER=on    Show user@host segment (default: on)
   PROMPT_SHOW_EXIT=on    Show exit code on failure (default: on)
   PROMPT_SHOW_DIR=on     Show directory path (default: on)
-  PROMPT_SHOW_SSH=on     Show SSH indicator (default: on)
-  PROMPT_SHOW_TIME=off   Show command duration (default: off)
+  PROMPT_SHOW_SSH=on     Show SSH indicator when connected (default: on)
+  PROMPT_SHOW_TIME=off   Show command duration when >=2s (default: off)
   PROMPT_STYLE=0         Prompt style: 0=powerline, 1=basename, 2=abbreviated, 3=full path, 4=long text (default: 0)
 EOF
 }
 
 # ── Parse args ──────────────────────────────────────────────────
-INSTALL_PREFIX="${PREFIX:-/usr/local}"
+INSTALL_PREFIX="${PREFIX:-}"
 INSTALL_FONT=0
 INSTALL_LINK=0
 DO_UNINSTALL=0
 
-for arg in "$@"; do
-	case "$arg" in
+while [ $# -gt 0 ]; do
+	case "$1" in
 	--prefix)
 		shift
 		INSTALL_PREFIX="$1"
-		shift
 		;;
-	--prefix=*) INSTALL_PREFIX="${arg#*=}" ;;
+	--prefix=*) INSTALL_PREFIX="${1#*=}" ;;
 	--font) INSTALL_FONT=1 ;;
 	--link) INSTALL_LINK=1 ;;
 	--uninstall) DO_UNINSTALL=1 ;;
-	--help)
+	--help | help)
 		show_help
 		exit 0
 		;;
 	*)
-		_err "Unknown option: $arg"
+		_err "Unknown option: $1"
 		show_help
 		exit 1
 		;;
 	esac
+	shift
 done
 
 # ── Detect shell ────────────────────────────────────────────────
@@ -168,15 +168,22 @@ install_font() {
 do_uninstall() {
 	_info "Uninstalling termeric..."
 
-	rm -f "$HOME/.termeric_bash" "$HOME/.termeric_zsh"
+	rm -f "$HOME/.termeric_bash" "$HOME/.termeric_zsh" "$HOME/.config/fish/termeric_fish"
 
 	for rc_file in "$HOME/.bashrc" "$HOME/.zshrc"; do
 		if [ -f "$rc_file" ]; then
-			sed -i.bak '/# termeric — golden prompt/,+4d' "$rc_file" 2>/dev/null ||
-				sed -i '' '/# termeric — golden prompt/,+4d' "$rc_file" 2>/dev/null || true
+			sed -i.bak '/# termeric — golden prompt/,+3d' "$rc_file" 2>/dev/null ||
+				sed -i '' '/# termeric — golden prompt/,+3d' "$rc_file" 2>/dev/null || true
 			rm -f "${rc_file}.bak"
 		fi
 	done
+
+	# Remove fish config source line
+	if [ -f "$HOME/.config/fish/config.fish" ]; then
+		sed -i.bak '/# termeric — golden prompt/,+1d' "$HOME/.config/fish/config.fish" 2>/dev/null ||
+			sed -i '' '/# termeric — golden prompt/,+1d' "$HOME/.config/fish/config.fish" 2>/dev/null || true
+		rm -f "$HOME/.config/fish/config.fish.bak"
+	fi
 
 	rm -f "$HOME/.local/bin/termeric"
 
@@ -190,9 +197,6 @@ do_install() {
 	_info "Detected shell: ${BOLD}$shell_name${RESET}"
 
 	# Copy shell configs
-	local share_dir="$INSTALL_PREFIX/share/termeric"
-	mkdir -p "$share_dir"
-
 	if [ "$INSTALL_LINK" -eq 1 ]; then
 		ln -sf "$DOTFILES_DIR/termeric_bash" "$HOME/.termeric_bash"
 		ln -sf "$DOTFILES_DIR/termeric_zsh" "$HOME/.termeric_zsh"
@@ -227,6 +231,29 @@ do_install() {
 		_ok "Added source line to ~/.zshrc"
 	fi
 
+	# Install fish config
+	if [ -f "$DOTFILES_DIR/termeric_fish" ]; then
+		local fish_config_dir="$HOME/.config/fish"
+		mkdir -p "$fish_config_dir"
+		if [ "$INSTALL_LINK" -eq 1 ]; then
+			ln -sf "$DOTFILES_DIR/termeric_fish" "$fish_config_dir/termeric_fish"
+		else
+			cp "$DOTFILES_DIR/termeric_fish" "$fish_config_dir/termeric_fish"
+		fi
+		_ok "Copied termeric_fish to $fish_config_dir/termeric_fish"
+
+		if ! grep -qxF 'source ~/.config/fish/termeric_fish' "$fish_config_dir/config.fish" 2>/dev/null; then
+			{
+				echo ""
+				echo "# termeric — golden prompt"
+				echo 'source ~/.config/fish/termeric_fish'
+			} >>"$fish_config_dir/config.fish"
+			_ok "Added source line to $fish_config_dir/config.fish"
+		else
+			_info "$fish_config_dir/config.fish already sources termeric_fish"
+		fi
+	fi
+
 	# Install CLI
 	mkdir -p "$HOME/.local/bin"
 	if [ "$INSTALL_LINK" -eq 1 ]; then
@@ -259,6 +286,7 @@ do_install() {
 		_info "Run ${BOLD}exec $shell_name${RESET} or open a new terminal."
 		;;
 	esac
+	_info "Run ${BOLD}termeric doctor${RESET} to verify your setup."
 }
 
 # ── Main ────────────────────────────────────────────────────────

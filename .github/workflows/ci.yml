@@ -215,36 +215,44 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Get version
+        id: version
+        run: echo "version=$(cat VERSION)" >> $GITHUB_OUTPUT
+
       - name: Build deb package
         run: |
           mkdir -p /tmp/termeric-pkg/DEBIAN
           mkdir -p /tmp/termeric-pkg/opt/termeric
           cp -r . /tmp/termeric-pkg/opt/termeric
-          cat > /tmp/termeric-pkg/DEBIAN/control << 'EOF'
+          cat > /tmp/termeric-pkg/DEBIAN/control << EOF
           Package: termeric
-          Version: 1.0.0
+          Version: ${{ steps.version.outputs.version }}
           Section: utils
           Priority: optional
           Architecture: all
           Depends: bash, zsh, git
           Maintainer: modib <noreply@github.com>
-           Homepage: https://modib.github.io/termeric/
-           Description: Golden prompts for your terminal
-            AI-powered, modernized shell prompt for bash, zsh, and fish.
+          Homepage: https://modib.github.io/termeric/
+          Description: Golden prompts for your terminal
+           AI-powered, modernized shell prompt for bash, zsh, and fish.
           EOF
-          dpkg-deb --build /tmp/termeric-pkg termeric_1.0.0_all.deb
+          dpkg-deb --build /tmp/termeric-pkg termeric_${{ steps.version.outputs.version }}_all.deb
 
       - name: Upload deb artifact
         uses: actions/upload-artifact@v4
         with:
           name: termeric-deb
-          path: termeric_1.0.0_all.deb
+          path: termeric_${{ steps.version.outputs.version }}_all.deb
 
       - name: Create release tarball
-        run: tar czf termeric-1.0.0.tar.gz --transform='s,^,termeric-1.0.0/,' termeric_bash termeric_zsh termeric_fish bin/ completions/ Homebrew/ packaging/ LICENSE README.md VERSION
+        run: |
+          VERSION=$(cat VERSION)
+          tar czf "termeric-$VERSION.tar.gz" \
+            --transform="s,^,termeric-$VERSION/," \
+            termeric_bash termeric_zsh termeric_fish bin/ completions/ Homebrew/ packaging/ LICENSE README.md VERSION
 
       - name: Upload tarball artifact
         uses: actions/upload-artifact@v4
         with:
           name: termeric-tarball
-          path: termeric-1.0.0.tar.gz
+          path: termeric-*.tar.gz

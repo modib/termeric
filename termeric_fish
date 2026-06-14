@@ -4,11 +4,11 @@
 # Configuration (set before sourcing):
 #   set -g PROMPT_COLOR on        Master color switch: on (default) or off
 #   set -g PROMPT_STYLE 0         Prompt style: 0=powerline, 1=basename, 2=abbreviated, 3=full path, 4=long text (default: 0)
-#   set -g PROMPT_SHOW_USER on    Show user@host segment
-#   set -g PROMPT_SHOW_EXIT on    Show exit code on failure
-#   set -g PROMPT_SHOW_DIR on     Show directory path
-#   set -g PROMPT_SHOW_SSH on     Show SSH indicator when connected
-#   set -g PROMPT_SHOW_TIME off   Show command duration when >=2s
+#   set -g PROMPT_SHOW_USER on    Show user@host segment (default: on)
+#   set -g PROMPT_SHOW_EXIT on    Show exit code on failure (default: on)
+#   set -g PROMPT_SHOW_DIR on     Show directory path (default: on)
+#   set -g PROMPT_SHOW_SSH on     Show SSH indicator when connected (default: on)
+#   set -g PROMPT_SHOW_TIME off   Show command duration when >=2s (default: off)
 
 # ── Defaults ────────────────────────────────────────────────────
 set -q PROMPT_COLOR; or set -g PROMPT_COLOR on

@@ -4,11 +4,11 @@
 # Configuration (set before sourcing):
 #   PROMPT_COLOR=on        Master color switch: on (default) or off
 #   PROMPT_STYLE=0         Prompt style: 0=powerline, 1=basename, 2=abbreviated, 3=full path, 4=long text (default: 0)
-#   PROMPT_SHOW_USER=on    Show user@host segment
-#   PROMPT_SHOW_EXIT=on    Show exit code on failure
-#   PROMPT_SHOW_DIR=on     Show directory path
-#   PROMPT_SHOW_SSH=on     Show SSH indicator when connected
-#   PROMPT_SHOW_TIME=off   Show command duration when >=2s
+#   PROMPT_SHOW_USER=on    Show user@host segment (default: on)
+#   PROMPT_SHOW_EXIT=on    Show exit code on failure (default: on)
+#   PROMPT_SHOW_DIR=on     Show directory path (default: on)
+#   PROMPT_SHOW_SSH=on     Show SSH indicator when connected (default: on)
+#   PROMPT_SHOW_TIME=off   Show command duration when >=2s (default: off)
 
 # ── Term detection (once) ──────────────────────────────────────
 case "$TERM" in
