@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-TERMERIC_VERSION="1.4.0"
+TERMERIC_VERSION="1.5.0"
 TERMERIC_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 
 # Detect share directory (Homebrew pkgshare puts files under share/termeric/)
@@ -62,6 +62,9 @@ _show_help() {
 		"    PROMPT_SHOW_DIR=on     Show directory path (default: on)" \
 		"    PROMPT_SHOW_SSH=on     Show SSH indicator when connected (default: on)" \
 		"    PROMPT_SHOW_TIME=off   Show command duration when >=2s (default: off)" \
+		"    PROMPT_VENV=off        Show Python virtualenv/conda name (default: off)" \
+		"    PROMPT_NODE=off        Show Node.js version (default: off)" \
+		"    PROMPT_K8S=off         Show Kubernetes context (default: off)" \
 		"    PROMPT_STYLE=0         Prompt style: 0=powerline, 1=basename, 2=abbreviated," \
 		"                           3=full path, 4=long text (default: 0)" \
 		"" \
@@ -340,6 +343,9 @@ _cmd_config() {
 # PROMPT_SHOW_DIR=on     # Show directory path (on/off)
 # PROMPT_SHOW_SSH=on     # Show SSH indicator (on/off)
 # PROMPT_SHOW_TIME=off   # Show command duration (on/off)
+# PROMPT_VENV=off        # Show Python virtualenv/conda name (on/off)
+# PROMPT_NODE=off        # Show Node.js version (on/off)
+# PROMPT_K8S=off         # Show Kubernetes context (on/off)
 CONF
 		_info "Created config at $config_file"
 	fi
@@ -450,6 +456,9 @@ _cmd_status() {
 	_show_toggle PROMPT_SHOW_DIR on
 	_show_toggle PROMPT_SHOW_SSH on
 	_show_toggle PROMPT_SHOW_TIME off
+	_show_toggle PROMPT_VENV off
+	_show_toggle PROMPT_NODE off
+	_show_toggle PROMPT_K8S off
 	_show_toggle PROMPT_STYLE 0
 
 	echo ""
@@ -613,6 +622,9 @@ _cmd_doctor() {
 	_doctor_toggle PROMPT_SHOW_DIR on ""
 	_doctor_toggle PROMPT_SHOW_SSH on ""
 	_doctor_toggle PROMPT_SHOW_TIME off ""
+	_doctor_toggle PROMPT_VENV off ""
+	_doctor_toggle PROMPT_NODE off ""
+	_doctor_toggle PROMPT_K8S off ""
 	_doctor_toggle PROMPT_STYLE 0 _get_style_desc
 	echo ""
 }

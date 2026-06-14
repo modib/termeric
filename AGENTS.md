@@ -12,8 +12,6 @@ termeric/
 │   ├── termeric.bash
 │   ├── termeric.zsh
 │   └── termeric.fish
-├── Homebrew/
-│   └── termeric.rb         # Homebrew formula
 ├── packaging/
 │   ├── Makefile
 │   ├── deb/                # Debian package
@@ -46,6 +44,9 @@ All features controlled via `on`/`off` values. Backward compat: `1`/`0` also acc
 | `PROMPT_SHOW_DIR` | `on` | Show directory path |
 | `PROMPT_SHOW_SSH` | `on` | Show SSH indicator when connected |
 | `PROMPT_SHOW_TIME` | `off` | Show command duration when ≥2s |
+| `PROMPT_VENV` | `off` | Show Python virtualenv/conda name |
+| `PROMPT_NODE` | `off` | Show Node.js version |
+| `PROMPT_K8S` | `off` | Show Kubernetes context |
 
 ### Git status caching
 - Uses `~/.cache/termeric/<repo-hash>.{cache,result}` (XDG-compliant)
@@ -73,6 +74,7 @@ All features controlled via `on`/`off` values. Backward compat: `1`/`0` also acc
 ### Versioning
 - Update `VERSION` file before release
 - GitHub Actions auto-builds packages on tag push
+- Before first release that uses auto-publish: create a GitHub classic PAT with `public_repo` scope, save as `HOMEBREW_TAP_TOKEN` in repo secrets
 
 ## Roadmap
 
@@ -96,10 +98,14 @@ All features controlled via `on`/`off` values. Backward compat: `1`/`0` also acc
 - Unify version across all files (VERSION, bin/termeric, install.sh)
 - Add PROMPT_COMMAND preservation tests to test suite
 
-### Phase 3 — Planned
+### Phase 3 — Done
 - Python virtualenv/conda segment (`PROMPT_VENV=off`)
 - Node.js version segment (`PROMPT_NODE=off`)
 - Kubernetes context segment (`PROMPT_K8S=off`)
+- Added color variables (BG_VENV, BG_NODE, BG_K8S, ARROW_VENV, ARROW_NODE, ARROW_K8S, TXT_VENV, TXT_NODE, TXT_K8S) and info functions to all 3 shells
+- Added segment rendering in all 4 style paths (powerline, style 4, styles 1/2, monochrome)
+- Updated bin/termeric (help, config template, status, doctor)
+- Updated install.sh help, Homebrew caveats, README.md, AGENTS.md
 
 ### Phase 4 — Future
 - AI features (intent detection, command explanation, error translation, natural language)

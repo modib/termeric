@@ -4,7 +4,7 @@ set -euo pipefail
 DOTFILES_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 # ── Version ─────────────────────────────────────────────────────
-TERMERIC_VERSION="${TERMERIC_VERSION:-1.4.0}"
+TERMERIC_VERSION="${TERMERIC_VERSION:-1.5.0}"
 
 # ── Colors ──────────────────────────────────────────────────────
 if [ -t 1 ]; then
@@ -44,6 +44,9 @@ Environment variables:
   PROMPT_SHOW_DIR=on     Show directory path (default: on)
   PROMPT_SHOW_SSH=on     Show SSH indicator when connected (default: on)
   PROMPT_SHOW_TIME=off   Show command duration when >=2s (default: off)
+  PROMPT_VENV=off        Show Python virtualenv/conda name (default: off)
+  PROMPT_NODE=off        Show Node.js version (default: off)
+  PROMPT_K8S=off         Show Kubernetes context (default: off)
   PROMPT_STYLE=0         Prompt style: 0=powerline, 1=basename, 2=abbreviated, 3=full path, 4=long text (default: 0)
 EOF
 }
