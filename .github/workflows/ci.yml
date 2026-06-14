@@ -249,7 +249,7 @@ jobs:
           VERSION=$(cat VERSION)
           tar czf "termeric-$VERSION.tar.gz" \
             --transform="s,^,termeric-$VERSION/," \
-            termeric_bash termeric_zsh termeric_fish bin/ completions/ Homebrew/ packaging/ LICENSE README.md VERSION
+            termeric_bash termeric_zsh termeric_fish bin/ completions/ packaging/ LICENSE README.md VERSION
 
       - name: Upload tarball artifact
         uses: actions/upload-artifact@v4
