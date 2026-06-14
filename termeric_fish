@@ -9,6 +9,9 @@
 #   set -g PROMPT_SHOW_DIR on     Show directory path (default: on)
 #   set -g PROMPT_SHOW_SSH on     Show SSH indicator when connected (default: on)
 #   set -g PROMPT_SHOW_TIME off   Show command duration when >=2s (default: off)
+#   set -g PROMPT_VENV off        Show Python virtualenv/conda name (default: off)
+#   set -g PROMPT_NODE off        Show Node.js version (default: off)
+#   set -g PROMPT_K8S off         Show Kubernetes context (default: off)
 
 # ── Defaults ────────────────────────────────────────────────────
 set -q PROMPT_COLOR; or set -g PROMPT_COLOR on
@@ -18,6 +21,9 @@ set -q PROMPT_SHOW_EXIT; or set -g PROMPT_SHOW_EXIT on
 set -q PROMPT_SHOW_DIR; or set -g PROMPT_SHOW_DIR on
 set -q PROMPT_SHOW_SSH; or set -g PROMPT_SHOW_SSH on
 set -q PROMPT_SHOW_TIME; or set -g PROMPT_SHOW_TIME off
+set -q PROMPT_VENV; or set -g PROMPT_VENV off
+set -q PROMPT_NODE; or set -g PROMPT_NODE off
+set -q PROMPT_K8S; or set -g PROMPT_K8S off
 
 # ── Term detection (once) ──────────────────────────────────────
 switch $TERM
@@ -61,6 +67,9 @@ function __tmerm_init_colors
         set -g BG_USER    (set_color -b 3264DC)
         set -g BG_PATH    (set_color -b 00BEBE)
         set -g BG_GIT     (set_color -b DCB400)
+        set -g BG_VENV    (set_color -b 46B464)
+        set -g BG_NODE    (set_color -b 3CA078)
+        set -g BG_K8S     (set_color -b 3C78C8)
         set -g BG_TIME    (set_color -b C832C8)
 
         # Arrow foregrounds (match previous segment bg)
@@ -69,6 +78,9 @@ function __tmerm_init_colors
         set -g ARROW_USER   (set_color 3264DC)
         set -g ARROW_PATH   (set_color 00BEBE)
         set -g ARROW_GIT    (set_color DCB400)
+        set -g ARROW_VENV   (set_color 46B464)
+        set -g ARROW_NODE   (set_color 3CA078)
+        set -g ARROW_K8S    (set_color 3C78C8)
         set -g ARROW_TIME   (set_color C832C8)
         set -g ARROW_DARK   (set_color 3C3C3C)
 
@@ -84,6 +96,9 @@ function __tmerm_init_colors
         set -g TXT_USER   (set_color green)
         set -g TXT_PATH   (set_color blue)
         set -g TXT_GIT    (set_color yellow)
+        set -g TXT_VENV   (set_color green)
+        set -g TXT_NODE   (set_color green)
+        set -g TXT_K8S    (set_color blue)
         set -g TXT_TIME   (set_color cyan)
 
         # Reset
@@ -98,6 +113,9 @@ function __tmerm_init_colors
         set -g BG_USER "";  set -g ARROW_USER ""
         set -g BG_PATH "";  set -g ARROW_PATH ""
         set -g BG_GIT "";   set -g ARROW_GIT ""
+        set -g BG_VENV "";  set -g ARROW_VENV ""
+        set -g BG_NODE "";  set -g ARROW_NODE ""
+        set -g BG_K8S "";   set -g ARROW_K8S ""
         set -g BG_TIME "";  set -g ARROW_TIME ""
         set -g ARROW_DARK ""
         set -g TXT_BG "";   set -g TXT_BG_LIT ""
@@ -105,7 +123,7 @@ function __tmerm_init_colors
         set -g RCOLOR ""
         set -g PROMPT_SEP_GREEN ""
         set -g TXT_USER ""; set -g TXT_PATH ""
-        set -g TXT_GIT "";  set -g TXT_TIME ""
+        set -g TXT_GIT "";  set -g TXT_VENV ""; set -g TXT_NODE ""; set -g TXT_K8S ""; set -g TXT_TIME ""
         set -g R ""
         set -g PSEP ""
         set -g PSEP_LEFT ""
@@ -234,6 +252,39 @@ function __tmerm_git_info
     rm -f "$git_dir/.termeric_cache" "$git_dir/.termeric_result" 2>/dev/null
 end
 
+# ── Virtual environment info ────────────────────────────────────
+function __tmerm_venv_info
+    set -l venv ""
+    if set -q VIRTUAL_ENV; and test -n "$VIRTUAL_ENV"
+        set venv (basename "$VIRTUAL_ENV")
+    end
+    if test -z "$venv"; and set -q CONDA_DEFAULT_ENV; and test -n "$CONDA_DEFAULT_ENV"
+        set venv "$CONDA_DEFAULT_ENV"
+    end
+    if test -n "$venv"
+        printf ' %s' "$venv"
+    end
+end
+
+# ── Node.js version info ────────────────────────────────────────
+function __tmerm_node_info
+    type -q node; or return
+    set -l ver (node --version 2>/dev/null; or return)
+    printf ' %s' (string sub -s 2 "$ver")
+end
+
+# ── Kubernetes context info ─────────────────────────────────────
+function __tmerm_k8s_info
+    type -q kubectl; or return
+    set -l ctx (kubectl config current-context 2>/dev/null; or return)
+    set -l ns (kubectl config view --minify -o jsonpath='{..namespace}' 2>/dev/null)
+    if test -n "$ns"
+        printf '☸ %s:%s' "$ctx" "$ns"
+    else
+        printf '☸ %s' "$ctx"
+    end
+end
+
 # ── Prompt builder ──────────────────────────────────────────────
 function fish_prompt
     set -l rc $status
@@ -286,6 +337,18 @@ function fish_prompt
         if test -n "$git_info"
             set data "$data $TXT_GIT$git_info$RCOLOR"
         end
+        set -l venv_info (__tmerm_venv_info 2>/dev/null)
+        if test -n "$venv_info"
+            set data "$data $TXT_VENV$venv_info$RCOLOR"
+        end
+        set -l node_info (__tmerm_node_info 2>/dev/null)
+        if test -n "$node_info"
+            set data "$data $TXT_NODE$node_info$RCOLOR"
+        end
+        set -l k8s_info (__tmerm_k8s_info 2>/dev/null)
+        if test -n "$k8s_info"
+            set data "$data $TXT_K8S$k8s_info$RCOLOR"
+        end
         if test "$PROMPT_SHOW_TIME" != off; and test $__tmerm_timer -gt 0
             set -l duration (math (date +%s) - $__tmerm_timer)
             if test $duration -ge 2
@@ -318,6 +381,18 @@ function fish_prompt
         set -l git_info (__tmerm_git_info 2>/dev/null)
         if test -n "$git_info"
             set data "$data $TXT_GIT$git_info$RCOLOR"
+        end
+        set -l venv_info (__tmerm_venv_info 2>/dev/null)
+        if test -n "$venv_info"
+            set data "$data $TXT_VENV$venv_info$RCOLOR"
+        end
+        set -l node_info (__tmerm_node_info 2>/dev/null)
+        if test -n "$node_info"
+            set data "$data $TXT_NODE$node_info$RCOLOR"
+        end
+        set -l k8s_info (__tmerm_k8s_info 2>/dev/null)
+        if test -n "$k8s_info"
+            set data "$data $TXT_K8S$k8s_info$RCOLOR"
         end
         printf '%b\n' "$data"
         if test -n "$PROMPT_SEP_GREEN"
@@ -380,6 +455,48 @@ function fish_prompt
             set arrow "$ARROW_GIT"
         end
 
+        # Virtual env
+        if test "$PROMPT_VENV" != off
+            set -l venv_info (__tmerm_venv_info 2>/dev/null)
+            if test -n "$venv_info"
+                if test -n "$arrow"
+                    set data "$data$BG_VENV$arrow$PSEP$R$BG_VENV$TXT_BG"
+                else
+                    set data "$data$BG_FAIL $BG_VENV$ARROW_DARK$PSEP$BG_VENV$TXT_BG"
+                end
+                set data "$data $venv_info $R"
+                set arrow "$ARROW_VENV"
+            end
+        end
+
+        # Node.js
+        if test "$PROMPT_NODE" != off
+            set -l node_info (__tmerm_node_info 2>/dev/null)
+            if test -n "$node_info"
+                if test -n "$arrow"
+                    set data "$data$BG_NODE$arrow$PSEP$R$BG_NODE$TXT_BG"
+                else
+                    set data "$data$BG_FAIL $BG_NODE$ARROW_DARK$PSEP$BG_NODE$TXT_BG"
+                end
+                set data "$data $node_info $R"
+                set arrow "$ARROW_NODE"
+            end
+        end
+
+        # Kubernetes
+        if test "$PROMPT_K8S" != off
+            set -l k8s_info (__tmerm_k8s_info 2>/dev/null)
+            if test -n "$k8s_info"
+                if test -n "$arrow"
+                    set data "$data$BG_K8S$arrow$PSEP$R$BG_K8S$TXT_BG"
+                else
+                    set data "$data$BG_FAIL $BG_K8S$ARROW_DARK$PSEP$BG_K8S$TXT_BG"
+                end
+                set data "$data $k8s_info $R"
+                set arrow "$ARROW_K8S"
+            end
+        end
+
         # Timing
         if test "$PROMPT_SHOW_TIME" != off; and test $__tmerm_timer -gt 0
             set -l duration (math (date +%s) - $__tmerm_timer)
@@ -433,6 +550,19 @@ function fish_prompt
         set -l git_info (__tmerm_git_info 2>/dev/null)
         if test -n "$git_info"
             set mono "$mono ($git_info)"
+        end
+
+        set -l venv_info (__tmerm_venv_info 2>/dev/null)
+        if test -n "$venv_info"
+            set mono "$mono $venv_info"
+        end
+        set -l node_info (__tmerm_node_info 2>/dev/null)
+        if test -n "$node_info"
+            set mono "$mono $node_info"
+        end
+        set -l k8s_info (__tmerm_k8s_info 2>/dev/null)
+        if test -n "$k8s_info"
+            set mono "$mono $k8s_info"
         end
 
         if test "$PROMPT_SHOW_TIME" != off; and test $__tmerm_timer -gt 0

@@ -9,6 +9,9 @@
 #   PROMPT_SHOW_DIR=on     Show directory path (default: on)
 #   PROMPT_SHOW_SSH=on     Show SSH indicator when connected (default: on)
 #   PROMPT_SHOW_TIME=off   Show command duration when >=2s (default: off)
+#   PROMPT_VENV=off        Show Python virtualenv/conda name (default: off)
+#   PROMPT_NODE=off        Show Node.js version (default: off)
+#   PROMPT_K8S=off         Show Kubernetes context (default: off)
 
 # ── Term detection (once) ──────────────────────────────────────
 case "$TERM" in
@@ -46,6 +49,9 @@ __tmerm_init_colors() {
         BG_USER="%{${E}[48;2;50;100;220m%}";ARROW_USER="%{${E}[38;2;50;100;220m%}"
         BG_PATH="%{${E}[48;2;0;190;190m%}"; ARROW_PATH="%{${E}[38;2;0;190;190m%}"
         BG_GIT="%{${E}[48;2;220;180;0m%}";  ARROW_GIT="%{${E}[38;2;220;180;0m%}"
+        BG_VENV="%{${E}[48;2;70;180;100m%}";  ARROW_VENV="%{${E}[38;2;70;180;100m%}"
+        BG_NODE="%{${E}[48;2;60;160;120m%}";  ARROW_NODE="%{${E}[38;2;60;160;120m%}"
+        BG_K8S="%{${E}[48;2;60;120;200m%}";   ARROW_K8S="%{${E}[38;2;60;120;200m%}"
         BG_TIME="%{${E}[48;2;200;50;200m%}";ARROW_TIME="%{${E}[38;2;200;50;200m%}"
         ARROW_BLACK="%{${E}[38;2;30;30;30m%}"
         ARROW_DARK="%{${E}[38;2;60;60;60m%}"
@@ -59,6 +65,9 @@ __tmerm_init_colors() {
         TXT_USER="%F{green}"
         TXT_PATH="%F{blue}"
         TXT_GIT="%F{yellow}"
+        TXT_VENV="%F{green}"
+        TXT_NODE="%F{green}"
+        TXT_K8S="%F{blue}"
         TXT_TIME="%F{cyan}"
         PSEP=
         PSEP_LEFT=
@@ -69,6 +78,9 @@ __tmerm_init_colors() {
         BG_USER="";  ARROW_USER=""
         BG_PATH="";  ARROW_PATH=""
         BG_GIT="";   ARROW_GIT=""
+        BG_VENV="";  ARROW_VENV=""
+        BG_NODE="";  ARROW_NODE=""
+        BG_K8S="";   ARROW_K8S=""
         BG_TIME="";  ARROW_TIME=""
         ARROW_BLACK=""; ARROW_DARK=""
         TXT_BG="";   TXT_BG_LIT=""
@@ -76,7 +88,7 @@ __tmerm_init_colors() {
         RCOLOR=""
         PROMPT_SEP_GREEN=""
         TXT_USER=""; TXT_PATH=""
-        TXT_GIT="";  TXT_TIME=""
+        TXT_GIT="";  TXT_VENV=""; TXT_NODE=""; TXT_K8S=""; TXT_TIME=""
         PSEP="";     PSEP_LEFT=""
     fi
 }
@@ -198,6 +210,36 @@ __tmerm_git_info() {
     rm -f "$git_dir/.termeric_cache" "$git_dir/.termeric_result" 2>/dev/null
 }
 
+# ── Virtual environment info ────────────────────────────────────
+__tmerm_venv_info() {
+    local venv=""
+    [ -n "${VIRTUAL_ENV:-}" ] && venv=$(basename "$VIRTUAL_ENV")
+    [ -z "$venv" ] && [ -n "${CONDA_DEFAULT_ENV:-}" ] && venv="$CONDA_DEFAULT_ENV"
+    [ -n "$venv" ] && print ' '"$venv"
+}
+
+# ── Node.js version info ────────────────────────────────────────
+__tmerm_node_info() {
+    (( $+commands[node] )) || return
+    local ver
+    ver=$(node --version 2>/dev/null) || return
+    print ' '"${ver#v}"
+}
+
+# ── Kubernetes context info ─────────────────────────────────────
+__tmerm_k8s_info() {
+    (( $+commands[kubectl] )) || return
+    local ctx
+    ctx=$(kubectl config current-context 2>/dev/null) || return
+    local ns
+    ns=$(kubectl config view --minify -o jsonpath='{..namespace}' 2>/dev/null)
+    if [ -n "$ns" ]; then
+        print '☸ '"$ctx:$ns"
+    else
+        print '☸ '"$ctx"
+    fi
+}
+
 # ── Prompt builder ──────────────────────────────────────────────
 __termeric_prompt() {
     local rc=$?
@@ -250,6 +292,15 @@ __termeric_prompt() {
         local git_info
         git_info=$(__tmerm_git_info 2>/dev/null)
         [[ -n "$git_info" ]] && data+=" ${TXT_GIT}$git_info${RCOLOR}"
+        local venv_info
+        venv_info=$(__tmerm_venv_info 2>/dev/null)
+        [[ -n "$venv_info" ]] && data+=" ${TXT_VENV}$venv_info${RCOLOR}"
+        local node_info
+        node_info=$(__tmerm_node_info 2>/dev/null)
+        [[ -n "$node_info" ]] && data+=" ${TXT_NODE}$node_info${RCOLOR}"
+        local k8s_info
+        k8s_info=$(__tmerm_k8s_info 2>/dev/null)
+        [[ -n "$k8s_info" ]] && data+=" ${TXT_K8S}$k8s_info${RCOLOR}"
         if [ "${PROMPT_SHOW_TIME:-off}" != "off" ] && (( __tmerm_timer > 0 )); then
             local duration=$(( EPOCHREALTIME - __tmerm_timer ))
             (( duration >= 2 )) && data+=" ${TXT_TIME}[${duration%.*}s]${RCOLOR}"
@@ -274,6 +325,15 @@ __termeric_prompt() {
         local git_info
         git_info=$(__tmerm_git_info 2>/dev/null)
         [[ -n "$git_info" ]] && data+=" ${TXT_GIT}$git_info${RCOLOR}"
+        local venv_info
+        venv_info=$(__tmerm_venv_info 2>/dev/null)
+        [[ -n "$venv_info" ]] && data+=" ${TXT_VENV}$venv_info${RCOLOR}"
+        local node_info
+        node_info=$(__tmerm_node_info 2>/dev/null)
+        [[ -n "$node_info" ]] && data+=" ${TXT_NODE}$node_info${RCOLOR}"
+        local k8s_info
+        k8s_info=$(__tmerm_k8s_info 2>/dev/null)
+        [[ -n "$k8s_info" ]] && data+=" ${TXT_K8S}$k8s_info${RCOLOR}"
         PROMPT="${data}"$'\n'"${PROMPT_SEP_GREEN}❯❯ ${RCOLOR}"
         __tmerm_timer=0
         return "$rc"
@@ -329,6 +389,51 @@ __termeric_prompt() {
             arrow="${ARROW_GIT}"
         fi
 
+        # Virtual env
+        if [ "${PROMPT_VENV:-off}" != "off" ]; then
+            local venv_info
+            venv_info=$(__tmerm_venv_info 2>/dev/null)
+            if [ -n "$venv_info" ]; then
+                if [ -n "$arrow" ]; then
+                    data+="${BG_VENV}${arrow}${psep}${R}${BG_VENV}${TXT_BG}"
+                else
+                    data+="${BG_FAIL} ${BG_VENV}${ARROW_DARK}${psep}${BG_VENV}${TXT_BG}"
+                fi
+                data+=" $venv_info ${R}"
+                arrow="${ARROW_VENV}"
+            fi
+        fi
+
+        # Node.js
+        if [ "${PROMPT_NODE:-off}" != "off" ]; then
+            local node_info
+            node_info=$(__tmerm_node_info 2>/dev/null)
+            if [ -n "$node_info" ]; then
+                if [ -n "$arrow" ]; then
+                    data+="${BG_NODE}${arrow}${psep}${R}${BG_NODE}${TXT_BG}"
+                else
+                    data+="${BG_FAIL} ${BG_NODE}${ARROW_DARK}${psep}${BG_NODE}${TXT_BG}"
+                fi
+                data+=" $node_info ${R}"
+                arrow="${ARROW_NODE}"
+            fi
+        fi
+
+        # Kubernetes
+        if [ "${PROMPT_K8S:-off}" != "off" ]; then
+            local k8s_info
+            k8s_info=$(__tmerm_k8s_info 2>/dev/null)
+            if [ -n "$k8s_info" ]; then
+                if [ -n "$arrow" ]; then
+                    data+="${BG_K8S}${arrow}${psep}${R}${BG_K8S}${TXT_BG}"
+                else
+                    data+="${BG_FAIL} ${BG_K8S}${ARROW_DARK}${psep}${BG_K8S}${TXT_BG}"
+                fi
+                data+=" $k8s_info ${R}"
+                arrow="${ARROW_K8S}"
+            fi
+        fi
+
         # Timing
         if [ "${PROMPT_SHOW_TIME:-off}" != "off" ] && (( __tmerm_timer > 0 )); then
             local duration=$(( EPOCHREALTIME - __tmerm_timer ))
@@ -370,6 +475,16 @@ __termeric_prompt() {
         local git_info
         git_info=$(__tmerm_git_info 2>/dev/null)
         [[ -n "$git_info" ]] && data+=" ($git_info)"
+
+        local venv_info
+        venv_info=$(__tmerm_venv_info 2>/dev/null)
+        [[ -n "$venv_info" ]] && data+=" $venv_info"
+        local node_info
+        node_info=$(__tmerm_node_info 2>/dev/null)
+        [[ -n "$node_info" ]] && data+=" $node_info"
+        local k8s_info
+        k8s_info=$(__tmerm_k8s_info 2>/dev/null)
+        [[ -n "$k8s_info" ]] && data+=" $k8s_info"
 
         if [ "${PROMPT_SHOW_TIME:-off}" != "off" ] && (( __tmerm_timer > 0 )); then
             local duration=$(( EPOCHREALTIME - __tmerm_timer ))

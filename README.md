@@ -11,8 +11,11 @@ A modernized, AI-ready shell prompt for bash, zsh, and fish with powerline segme
 - **Fast rendering** — eliminated subshells, early exits, no redundant forks
 - **Command timing** — shows duration for long-running commands
 - **Exit code indicator** — visual check/cross for success/failure
+- **Python venv/conda** — shows active virtual environment name
+- **Node.js version** — displays current Node version
+- **Kubernetes context** — shows active k8s context and namespace
 - **Cross-platform** — macOS, Linux, any terminal with truecolor support
-- **Zero dependencies** — pure bash/zsh, no Python, no Node
+- **Zero dependencies** — pure bash/zsh/fish, no Python, no Node
 
 ## Quick Start
 
@@ -63,6 +66,9 @@ Set these in your shell config **before** sourcing termeric:
 | `PROMPT_SHOW_DIR` | `on` | Show directory path |
 | `PROMPT_SHOW_SSH` | `on` | Show SSH indicator when connected |
 | `PROMPT_SHOW_TIME` | `off` | Show command duration when ≥2s |
+| `PROMPT_VENV` | `off` | Show Python virtualenv/conda name |
+| `PROMPT_NODE` | `off` | Show Node.js version |
+| `PROMPT_K8S` | `off` | Show Kubernetes context |
 
 **bash/zsh** (in `~/.bashrc` or `~/.zshrc`):
 
@@ -74,6 +80,9 @@ export PROMPT_SHOW_EXIT=on
 export PROMPT_SHOW_DIR=on
 export PROMPT_SHOW_SSH=on
 export PROMPT_SHOW_TIME=off
+export PROMPT_VENV=off
+export PROMPT_NODE=off
+export PROMPT_K8S=off
 ```
 
 **fish** (in `~/.config/fish/config.fish`):
@@ -86,6 +95,9 @@ set -g PROMPT_SHOW_EXIT on
 set -g PROMPT_SHOW_DIR on
 set -g PROMPT_SHOW_SSH on
 set -g PROMPT_SHOW_TIME off
+set -g PROMPT_VENV off
+set -g PROMPT_NODE off
+set -g PROMPT_K8S off
 ```
 
 ## CLI Commands
