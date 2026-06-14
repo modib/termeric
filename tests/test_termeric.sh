@@ -58,7 +58,6 @@ if command -v fish &>/dev/null; then
 else
     skip "syntax: termeric_fish (fish not installed)"
 fi
-check_syntax "$TERMERIC_DIR/Homebrew/termeric.rb" "Homebrew formula" "ruby -c '$TERMERIC_DIR/Homebrew/termeric.rb'" ruby
 
 # ================================================================
 header "2. File existence"
@@ -70,7 +69,6 @@ for f in \
     "bin/termeric" \
     "install.sh" \
     "completions/termeric.bash" "completions/termeric.zsh" "completions/termeric.fish" \
-    "Homebrew/termeric.rb" \
     "packaging/Makefile" \
     "packaging/deb/control" \
     "packaging/rpm/termeric.spec" \
@@ -118,7 +116,7 @@ done
 header "4. CLI and docs toggle name audit"
 # ================================================================
 
-for doc_file in "$TERMERIC_DIR/bin/termeric" "$TERMERIC_DIR/README.md" "$TERMERIC_DIR/install.sh" "$TERMERIC_DIR/docs/index.html" "$TERMERIC_DIR/Homebrew/termeric.rb"; do
+for doc_file in "$TERMERIC_DIR/bin/termeric" "$TERMERIC_DIR/README.md" "$TERMERIC_DIR/install.sh" "$TERMERIC_DIR/docs/index.html"; do
     name=$(basename "$doc_file")
     for old in "PROMPT_COLOR_MODE" "PROMPT_EXIT_CODE" "PROMPT_CMD_TIME" "PROMPT_USER_HOST" "PROMPT_SHORT"; do
         if grep -q "$old" "$doc_file" 2>/dev/null; then
@@ -128,7 +126,7 @@ for doc_file in "$TERMERIC_DIR/bin/termeric" "$TERMERIC_DIR/README.md" "$TERMERI
 done
 
 # Verify ALL toggle names present in ALL doc/CLI files
-for doc_file in "$TERMERIC_DIR/bin/termeric" "$TERMERIC_DIR/README.md" "$TERMERIC_DIR/install.sh" "$TERMERIC_DIR/Homebrew/termeric.rb" "$TERMERIC_DIR/AGENTS.md"; do
+for doc_file in "$TERMERIC_DIR/bin/termeric" "$TERMERIC_DIR/README.md" "$TERMERIC_DIR/install.sh" "$TERMERIC_DIR/AGENTS.md"; do
     name=$(basename "$doc_file")
     for toggle in "PROMPT_COLOR" "PROMPT_STYLE" "PROMPT_SHOW_USER" "PROMPT_SHOW_EXIT" "PROMPT_SHOW_DIR" "PROMPT_SHOW_SSH" "PROMPT_SHOW_TIME"; do
         if ! grep -q "$toggle" "$doc_file" 2>/dev/null; then
@@ -727,41 +725,7 @@ else
 fi
 
 # ================================================================
-header "12. Homebrew formula integrity"
-# ================================================================
-
-formula="$TERMERIC_DIR/Homebrew/termeric.rb"
-# Check all installed files referenced in formula exist
-formula_ok=0
-for ref_file in "termeric_bash" "termeric_zsh" "termeric_fish" "bin/termeric" \
-    "completions/termeric.bash" "completions/termeric.zsh" "completions/termeric.fish"; do
-    if [ -f "$TERMERIC_DIR/$ref_file" ]; then
-        formula_ok=$((formula_ok+1))
-    fi
-done
-# 7 files expected
-if [ "$formula_ok" -eq 7 ]; then
-    pass "Homebrew formula: all 7 referenced files exist"
-else
-    fail "Homebrew formula: $formula_ok/7 referenced files exist"
-fi
-
-# Check PROMPT_STYLE is in formula caveats
-if grep -q "PROMPT_STYLE" "$formula" 2>/dev/null; then
-    pass "Homebrew formula: PROMPT_STYLE in caveats"
-else
-    fail "Homebrew formula: PROMPT_STYLE missing from caveats"
-fi
-
-# Check formula URL version matches VERSION
-if grep -q "v${version_file}.tar.gz" "$formula" 2>/dev/null; then
-    pass "Homebrew formula: URL version matches VERSION ($version_file)"
-else
-    fail "Homebrew formula: URL version may not match VERSION ($version_file)"
-fi
-
-# ================================================================
-header "13. Complete files — old toggle names check"
+header "12. Complete files — old toggle names check"
 # ================================================================
 
 # Check ALL non-shell files for remaining old toggle names
@@ -769,7 +733,7 @@ old_names="PROMPT_COLOR_MODE|PROMPT_EXIT_CODE|PROMPT_CMD_TIME|PROMPT_USER_HOST|P
 # Allow matches in AGENTS.md roadmap (historical notes)
 old_found=0
 for f in "$TERMERIC_DIR/README.md" "$TERMERIC_DIR/bin/termeric" "$TERMERIC_DIR/install.sh" \
-         "$TERMERIC_DIR/docs/index.html" "$TERMERIC_DIR/Homebrew/termeric.rb"; do
+         "$TERMERIC_DIR/docs/index.html"; do
     name=$(basename "$f")
     matches=$(grep -cE "$old_names" "$f" 2>/dev/null || true)
     if [ "$matches" -gt 0 ]; then
