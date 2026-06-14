@@ -106,7 +106,7 @@ _get_rc_val() {
 }
 
 _get_style_desc() {
-	case "${1:-0}" in 0) echo "powerline";; 1) echo "basename";; 2) echo "abbreviated";; 3) echo "full path";; 4) echo "long text";; esac
+	case "${1:-0}" in 0) echo "powerline" ;; 1) echo "basename" ;; 2) echo "abbreviated" ;; 3) echo "full path" ;; 4) echo "long text" ;; esac
 }
 
 # ── Install ─────────────────────────────────────────────────────
