@@ -74,13 +74,21 @@ jobs:
 
             Golden prompts for your terminal — now with AI agent support.
 
-            **New in 1.6.0:**
-            - AI agent with Groq/Ollama/OpenAI backend support
-            - ReAct loop with 7 tools (run_command, read_file, write_file, glob, grep, web_fetch, web_search)
+            **New in 1.7.0:**
+            - Non-streaming LLM calls (faster, no more empty second-turn responses)
+            - 3-turn max ReAct loop with 1s rate-limit delay (Groq free tier safe)
+            - Developer command blocklist: npm, npx, yarn, pnpm, bun, cargo, pip install -r, gem/bundle/composer install, dotnet/go build/run/new/mod, mvn, gradle, scaffolding
+            - Scope rule: agent focuses on sysadmin, file mgmt, shell scripting (not app dev)
+            - Fallback: empty LLM response shows raw tool result instead of blank answer
+            - Usage metadata shown on exit (`provider/model · tokens↑ tokens↓ total∑`)
+
+            **Still in 1.7.0 (from 1.6.0):**
+            - AI agent with Groq/Ollama/OpenAI/Gemini backend support
+            - 4 tools: run_command, read_file, web_fetch, web_search
             - Safe mode: confirm before running commands
-            - `termeric ai agent|config|doctor` CLI subcommands
+            - `termeric ai agent|config|doctor|clear-cache` CLI subcommands
             - `ai()` shell function in bash, zsh, fish
-            - `/` prefix intercept in zsh and fish (type `// query` to talk to AI)
+            - `@` prefix intercept in zsh and fish (type `@ query` to talk to AI)
 
               ### Install
 

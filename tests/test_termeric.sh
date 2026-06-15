@@ -782,16 +782,16 @@ else
 fi
 [ "$ai_func_ok" -eq 3 ] && pass "all 3 shell files have ai() function"
 
-# 13d. / prefix intercept hooks in zsh and fish
-if grep -q "accept-line" "$TERMERIC_DIR/termeric_zsh" 2>/dev/null; then
-	pass "termeric_zsh: / prefix intercept via accept-line"
+# 13d. @ prefix intercept hooks in zsh and fish
+if grep -qE '\^@' "$TERMERIC_DIR/termeric_zsh" 2>/dev/null; then
+	pass "termeric_zsh: @ prefix intercept via accept-line"
 else
-	fail "termeric_zsh: missing / prefix intercept"
+	fail "termeric_zsh: missing @ prefix intercept"
 fi
-if grep -q "fish_preexec" "$TERMERIC_DIR/termeric_fish" 2>/dev/null; then
-	pass "termeric_fish: / prefix intercept via fish_preexec"
+if grep -qE '\^@' "$TERMERIC_DIR/termeric_fish" 2>/dev/null; then
+	pass "termeric_fish: @ prefix intercept via fish_preexec"
 else
-	fail "termeric_fish: missing / prefix intercept"
+	fail "termeric_fish: missing @ prefix intercept"
 fi
 
 # 13e. CLI dispatches ai subcommand
@@ -820,53 +820,7 @@ else
 	fail "_read_file: got '$(echo "$rft" | head -c 50)'"
 fi
 
-# 13g. _write_file creates file with content
-wft=$(bash -c "
-	source '$AI_LIB'
-	tmpd=\$(mktemp -d)
-	tmpf=\$tmpd/test.txt
-	_write_file \$tmpf 'test content' >/dev/null
-	cat \$tmpf 2>/dev/null
-	rm -rf \$tmpd
-" 2>/dev/null) || true
-if [ "$wft" = "test content" ]; then
-	pass "_write_file: creates file with content"
-else
-	fail "_write_file: got '$wft'"
-fi
-
-# 13h. _glob finds files by pattern
-glt=$(bash -c "
-	source '$AI_LIB'
-	tmpd=\$(mktemp -d)
-	cd \$tmpd
-	touch foo.txt bar.txt baz.log
-	_glob '*.txt' 2>/dev/null | sort | tr '\n' ' '
-	rm -rf \$tmpd
-" 2>/dev/null) || true
-if echo "$glt" | grep -q "foo.txt" && echo "$glt" | grep -q "bar.txt"; then
-	pass "_glob: finds .txt files"
-else
-	fail "_glob: got '$glt'"
-fi
-
-# 13i. _grep finds pattern in files
-grt=$(bash -c "
-	source '$AI_LIB'
-	tmpd=\$(mktemp -d)
-	cd \$tmpd
-	echo 'hello world' > test.txt
-	echo 'other' > other.txt
-	_grep 'hello' . 2>/dev/null
-	rm -rf \$tmpd
-" 2>/dev/null) || true
-if echo "$grt" | grep -q "hello"; then
-	pass "_grep: finds pattern in files"
-else
-	fail "_grep: got '$(echo "$grt" | head -c 50)'"
-fi
-
-# 13j. _load_config reads from config file
+# 13g. _load_config reads from config file
 clt=$(bash -c "
 	TMPD=\$(mktemp -d)
 	export XDG_CONFIG_HOME=\$TMPD
@@ -1095,15 +1049,7 @@ else
   fail "_exec_tool: missing path got '$et_mp'"
 fi
 
-# 14j. _exec_tool missing pattern arg
-et_mpt=$(bash -c "source '$AI_LIB'; _exec_tool glob '{}'")
-if echo "$et_mpt" | grep -q "Missing pattern argument"; then
-  pass "_exec_tool: missing pattern arg"
-else
-  fail "_exec_tool: missing pattern got '$et_mpt'"
-fi
-
-# 14k. _exec_tool unknown tool
+# 14j. _exec_tool unknown tool
 et_ut=$(bash -c "source '$AI_LIB'; _exec_tool nonexistent '{}'")
 if echo "$et_ut" | grep -q "Unknown tool: nonexistent"; then
   pass "_exec_tool: unknown tool"
@@ -1111,7 +1057,7 @@ else
   fail "_exec_tool: unknown tool got '$et_ut'"
 fi
 
-# 14l. ReAct loop: LLM failure exits with 1
+# 14k. ReAct loop: LLM failure exits with 1
 rl_f=$(bash -c "
   source '$AI_LIB'
   AI_SAFE_MODE=off
@@ -1124,14 +1070,14 @@ else
   fail "_react_loop: LLM failure got exit ${rl_f_rc:-0}"
 fi
 
-# 14m. ReAct loop: max turns warning
+# 14m. ReAct loop: max 3 turns warning
 rl_m=$(bash -c "
   source '$AI_LIB'
   AI_SAFE_MODE=off
   _llm_chat() { echo '{\"tool\": \"run_command\", \"args\": {\"command\": \"echo hi\"}}'; }
   _react_loop 'test query'
 " 2>&1) || rl_m_rc=$?
-if [ "${rl_m_rc:-0}" -eq 1 ] && echo "$rl_m" | grep -q "max 8 turns"; then
+if [ "${rl_m_rc:-0}" -eq 1 ] && echo "$rl_m" | grep -q "max 3 turns"; then
   pass "_react_loop: max turns warning"
 else
   fail "_react_loop: max turns got rc=${rl_m_rc:-0} msg='$(echo "$rl_m" | head -c 50)'"
@@ -1145,18 +1091,303 @@ else
   fail "_read_file: non-existent got '$rf_nf'"
 fi
 
-# 14o. _glob with no matches
-gl_nm=$(bash -c "
+
+
+# ================================================================
+header "15. AI module — Phase 4.5 (streaming, Gemini, doctor, context)"
+# ================================================================
+
+# 15a. Gemini with key sets default endpoint and model
+gkt=$(bash -c "
   source '$AI_LIB'
-  tmpd=\$(mktemp -d)
-  cd \$tmpd
-  _glob '*.nonexistent'
-  rm -rf \$tmpd
-" 2>/dev/null)
-if [ -z "$gl_nm" ]; then
-  pass "_glob: no matches returns empty"
+  export TERMERIC_AI_BACKEND=gemini
+  export TERMERIC_AI_API_KEY=test-gemini-key
+  _load_config 2>/dev/null || true
+  echo \"EP=\$AI_ENDPOINT MODEL=\$AI_MODEL\"
+")
+if echo "$gkt" | grep -q "EP=https://generativelanguage.googleapis.com/v1beta" && \
+   echo "$gkt" | grep -q "MODEL=gemini-2.0-flash"; then
+  pass "_load_config: Gemini with key sets defaults"
 else
-  fail "_glob: no matches got '$gl_nm'"
+  fail "_load_config: Gemini with key got '$gkt'"
+fi
+
+# 15b. Gemini without key returns 1
+gkn=$(bash -c "
+  source '$AI_LIB'
+  export TERMERIC_AI_BACKEND=gemini
+  _load_config 2>/dev/null
+" 2>/dev/null) || gkn_rc=$?
+if [ "${gkn_rc:-0}" -eq 1 ]; then
+  pass "_load_config: Gemini without key returns 1"
+else
+  fail "_load_config: Gemini without key returned ${gkn_rc:-0}"
+fi
+
+# 15c. Gemini unknown model still loads (key is what matters)
+gkm=$(bash -c "
+  source '$AI_LIB'
+  export TERMERIC_AI_BACKEND=gemini
+  export TERMERIC_AI_API_KEY=test-key
+  export TERMERIC_AI_MODEL=custom-model
+  _load_config 2>/dev/null || true
+  echo \"MODEL=\$AI_MODEL\"
+")
+if echo "$gkm" | grep -q "MODEL=custom-model"; then
+  pass "_load_config: Gemini custom model accepted"
+else
+  fail "_load_config: Gemini custom model got '$gkm'"
+fi
+
+# 15d. _cmd_doctor runs without error and shows expected sections
+doc_out=$(bash -c "
+  source '$AI_LIB'
+  export TERMERIC_AI_BACKEND=ollama
+  _cmd_doctor
+" 2>&1) || doc_rc=$?
+if [ -z "${doc_rc:-0}" ] || [ "${doc_rc:-0}" -eq 0 ]; then
+  pass "_cmd_doctor: runs without error"
+else
+  fail "_cmd_doctor: returned ${doc_rc:-0}"
+fi
+if echo "$doc_out" | grep -q "Checking AI dependencies"; then
+  pass "_cmd_doctor: shows dependency check header"
+else
+  fail "_cmd_doctor: missing dependency header"
+fi
+if echo "$doc_out" | grep -q "Backend: ollama"; then
+  pass "_cmd_doctor: shows backend"
+else
+  fail "_cmd_doctor: missing backend info"
+fi
+
+# 15e. _cmd_doctor with Ollama backend shows Ollama connectivity check
+doc_ollama=$(bash -c "
+  source '$AI_LIB'
+  export TERMERIC_AI_BACKEND=ollama
+  _cmd_doctor
+" 2>&1) || true
+if echo "$doc_ollama" | grep -q "Ollama"; then
+  pass "_cmd_doctor: shows Ollama section when backend=ollama"
+else
+  fail "_cmd_doctor: missing Ollama section"
+fi
+
+# 15f. _cmd_agent --noctx passes query through without context prefix
+noctx_out=$(bash -c "
+  source '$AI_LIB'
+  export TERMERIC_AI_BACKEND=ollama
+  AI_SAFE_MODE=off
+  _react_loop() { echo \"\$1\"; }
+  _cmd_agent --noctx 'hello world'
+" 2>/dev/null)
+if echo "$noctx_out" | grep -q "^hello world$"; then
+  pass "_cmd_agent: --noctx passes query without context"
+else
+  fail "_cmd_agent: --noctx got '$noctx_out'"
+fi
+
+# 15g. _cmd_agent without --noctx prepends context
+ctx_out=$(bash -c "
+  source '$AI_LIB'
+  export TERMERIC_AI_BACKEND=ollama
+  AI_SAFE_MODE=off
+  _react_loop() { echo \"\$1\"; }
+  _cmd_agent 'hello world'
+" 2>/dev/null)
+if echo "$ctx_out" | grep -q "\[ctx:" && echo "$ctx_out" | grep -q "hello world"; then
+  pass "_cmd_agent: prepends context to query"
+else
+  fail "_cmd_agent: context got '$ctx_out'"
+fi
+
+# 15h. Gemini _llm_chat_gemini message translation (system prompt extraction)
+gemini_trans=$(bash -c "
+  source '$AI_LIB'
+  AI_ENDPOINT='http://127.0.0.1:1'
+  AI_MODEL='gemini-2.0-flash'
+  AI_API_KEY='test-key'
+  # Test just the jq translation by checking what would be sent
+  msgs='[{\"role\":\"system\",\"content\":\"You are a bot\"},{\"role\":\"user\",\"content\":\"hello\"}]'
+  sys=\$(echo \"\$msgs\" | jq -r '[.[] | select(.role == \"system\") | .content] | first // \"\"')
+  contents=\$(echo \"\$msgs\" | jq -c '[.[] | select(.role != \"system\") | if .role == \"assistant\" then {role: \"model\", parts: [{text: .content}]} elif .role == \"tool\" then {role: \"user\", parts: [{text: \"[Tool result]: \(.content)\"}]} else {role: \"user\", parts: [{text: .content}]} end]')
+  echo \"SYS=\$sys CONT=\$contents\"
+")
+if echo "$gemini_trans" | grep -q "SYS=You are a bot" && \
+   echo "$gemini_trans" | grep -q '"role":"user"' && \
+   echo "$gemini_trans" | grep -q '"text":"hello"'; then
+  pass "Gemini message translation: system/user extraction correct"
+else
+  fail "Gemini message translation: got '$gemini_trans'"
+fi
+
+# 15i. Shell ai() function handles --noctx (bash)
+if grep -qE -- "--noctx" "$TERMERIC_DIR/termeric_bash"; then
+  pass "termeric_bash ai(): supports --noctx flag"
+else
+  fail "termeric_bash ai(): missing --noctx"
+fi
+
+# 15j. Shell ai() function handles --noctx (zsh)
+if grep -qE -- "--noctx" "$TERMERIC_DIR/termeric_zsh"; then
+  pass "termeric_zsh ai(): supports --noctx flag"
+else
+  fail "termeric_zsh ai(): missing --noctx"
+fi
+
+# 15k. Shell ai() function handles --noctx (fish)
+if grep -qE -- "--noctx" "$TERMERIC_DIR/termeric_fish"; then
+  pass "termeric_fish ai(): supports --noctx flag"
+else
+  fail "termeric_fish ai(): missing --noctx"
+fi
+
+# 15l. _cmd_doctor shows config file status
+doc_cfg=$(bash -c "
+  source '$AI_LIB'
+  export TERMERIC_AI_BACKEND=groq
+  export TERMERIC_AI_API_KEY=test-key
+  _cmd_doctor
+" 2>&1) || true
+if echo "$doc_cfg" | grep -q "Config file"; then
+  pass "_cmd_doctor: shows config file status"
+else
+  fail "_cmd_doctor: missing config file status"
+fi
+
+# 15m. Shell ai() function contains context-gathering variables (bash)
+if grep -q "ctx_dir" "$TERMERIC_DIR/termeric_bash"; then
+  pass "termeric_bash ai(): uses ctx_dir for directory context"
+else
+  fail "termeric_bash ai(): missing ctx_dir"
+fi
+
+# 15n. System prompt contains conversational summary rule
+if grep -q "Always end with a clear conversational summary" "$TERMERIC_DIR/ai/termeric_ai"; then
+  pass "_system_prompt: contains summary rule"
+else
+  fail "_system_prompt: missing summary rule"
+fi
+
+# 15o. _react_loop prints separator before answer
+rl_sep=$(bash -c "
+  source '$AI_LIB'
+  AI_SAFE_MODE=off
+  _llm_chat() { echo '{\"answer\": \"test answer\"}'; }
+  _react_loop 'test'
+" 2>&1) || true
+if echo "$rl_sep" | grep -q "━━━"; then
+  pass "_react_loop: prints separator before answer"
+else
+  fail "_react_loop: missing separator in output"
+fi
+if echo "$rl_sep" | grep -q "test answer"; then
+  pass "_react_loop: answer printed after separator"
+else
+  fail "_react_loop: answer not found in output"
+fi
+
+# 15p. Blocklist rejects npm
+bl_npm=$(bash -c "
+  source '$AI_LIB'
+  AI_SAFE_MODE=off
+  _run_command 'npm install express'
+" 2>/dev/null)
+if echo "$bl_npm" | grep -q "Blocked"; then
+  pass "_run_command: blocks npm install"
+else
+  fail "_run_command: npm install not blocked got '$bl_npm'"
+fi
+
+# 15q. Blocklist rejects pip install -r
+bl_pip=$(bash -c "
+  source '$AI_LIB'
+  AI_SAFE_MODE=off
+  _run_command 'pip install -r requirements.txt'
+" 2>/dev/null)
+if echo "$bl_pip" | grep -q "Blocked"; then
+  pass "_run_command: blocks pip install -r"
+else
+  fail "_run_command: pip install -r not blocked"
+fi
+
+# 15r. Blocklist allows pip install of a single package (no -r)
+bl_pip_ok=$(bash -c "
+  source '$AI_LIB'
+  AI_SAFE_MODE=off
+  _run_command 'pip install requests'
+" 2>/dev/null)
+if echo "$bl_pip_ok" | grep -qv "Blocked"; then
+  pass "_run_command: allows pip install single package"
+else
+  fail "_run_command: pip install single package wrongly blocked"
+fi
+
+# 15s. Blocklist rejects cargo build
+bl_cargo=$(bash -c "
+  source '$AI_LIB'
+  AI_SAFE_MODE=off
+  _run_command 'cargo build --release'
+" 2>/dev/null)
+if echo "$bl_cargo" | grep -q "Blocked"; then
+  pass "_run_command: blocks cargo build"
+else
+  fail "_run_command: cargo build not blocked"
+fi
+
+# 15t. System prompt contains scope rule
+if grep -q "Scope: system administration" "$TERMERIC_DIR/ai/termeric_ai"; then
+  pass "_system_prompt: contains scope rule"
+else
+  fail "_system_prompt: missing scope rule"
+fi
+
+# 15u. Two-turn flow: tool call → answer
+two_turn=$(bash -c "
+  source '$AI_LIB'
+  AI_SAFE_MODE=off
+  tf=\$(mktemp)
+  echo 0 > \"\$tf\"
+  _llm_chat() {
+    local c=\"\$(<\$tf)\"
+    echo \$((c + 1)) > \"\$tf\"
+    if [ \"\$c\" -eq 0 ]; then
+      printf '{\"tool\": \"run_command\", \"args\": {\"command\": \"echo done\"}}'
+    else
+      printf '{\"answer\": \"Task complete\"}'
+    fi
+  }
+  _react_loop 'do something'
+  rm -f \"\$tf\"
+" 2>&1) || true
+if echo "$two_turn" | grep -q "Task complete"; then
+  pass "_react_loop: two-turn flow produces answer"
+else
+  fail "_react_loop: two-turn missing answer in '$(echo "$two_turn" | head -c 80)'"
+fi
+
+# 15v. Fallback: second LLM call empty shows tool result
+rl_fb=$(bash -c "
+  source '$AI_LIB'
+  AI_SAFE_MODE=off
+  tf=\$(mktemp)
+  echo 0 > \"\$tf\"
+  _llm_chat() {
+    local c=\"\$(<\$tf)\"
+    echo \$((c + 1)) > \"\$tf\"
+    if [ \"\$c\" -eq 0 ]; then
+      printf '{\"tool\": \"run_command\", \"args\": {\"command\": \"echo hello\"}}'
+    else
+      printf ''
+    fi
+  }
+  _react_loop 'test'
+  rm -f \"\$tf\"
+" 2>&1) || true
+if echo "$rl_fb" | grep -q "Tool result:"; then
+  pass "_react_loop: fallback shows tool result on empty answer"
+else
+  fail "_react_loop: fallback not found '$(echo "$rl_fb" | head -c 80)'"
 fi
 
 rm -f "$AI_LIB"

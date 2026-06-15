@@ -1,18 +1,29 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# termeric AI -- ReAct agent with Groq / Ollama / OpenAI support
-# Usage: ai/termeric_ai agent <query>
+# termeric AI -- ReAct agent with Groq / Ollama / OpenAI / Gemini support
+# Usage: ai/termeric_ai agent [--noctx] <query>
 #        ai/termeric_ai config
 #        ai/termeric_ai doctor
 
-TERMERIC_AI_VERSION="1.6.0"
+TERMERIC_AI_VERSION="1.7.0"
 
 # ---- Helpers ----------------------------------------------------
 _info() { printf "\033[36m▸\033[0m %s\n" "$*"; }
 _ok()   { printf "\033[32m✓\033[0m %s\n" "$*"; }
 _warn() { printf "\033[33m⚠\033[0m %s\n" "$*" >&2; }
 _err()  { printf "\033[31m✗\033[0m %s\n" "$*" >&2; }
+
+_print_summary() {
+  local tokens=""
+  if [ -n "$_USAGE_JSON" ]; then
+    tokens=$(echo "$_USAGE_JSON" | jq -r '
+      if .promptTokenCount then "\(.promptTokenCount)↑ \(.candidatesTokenCount)↓ \(.totalTokenCount)∑"
+      elif .prompt_tokens then "\(.prompt_tokens)↑ \(.completion_tokens)↓ \(.total_tokens)∑"
+      else empty end' 2>/dev/null)
+  fi
+  printf "\033[2m\u2501 %s \u00b7 %s\033[0m\n" "$AI_BACKEND/$AI_MODEL" "${tokens:-usage n/a}" >&2
+}
 
 # ---- Config ------------------------------------------------------
 AI_CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/termeric"
@@ -22,6 +33,7 @@ AI_ENDPOINT=""
 AI_API_KEY=""
 AI_MODEL=""
 AI_SAFE_MODE="on"
+_USAGE_JSON=""
 
 _load_config() {
   if [ -f "$AI_CONFIG_FILE" ]; then
@@ -64,15 +76,30 @@ _load_config() {
         return 1
       fi
       ;;
+    gemini)
+      AI_ENDPOINT="${AI_ENDPOINT:-https://generativelanguage.googleapis.com/v1beta}"
+      AI_MODEL="${AI_MODEL:-gemini-2.0-flash}"
+      if [ -z "$AI_API_KEY" ]; then
+        _err "AI_API_KEY not set for Gemini backend (get one at https://aistudio.google.com/apikey)"
+        return 1
+      fi
+      ;;
     *)
-      _err "Unknown backend '$AI_BACKEND'. Valid: groq, ollama, openai"
+      _err "Unknown backend '$AI_BACKEND'. Valid: groq, ollama, openai, gemini"
       return 1
       ;;
   esac
 }
 
-# ---- LLM call ----------------------------------------------------
+# ---- LLM calls ----------------------------------------------------
 _llm_chat() {
+  case "$AI_BACKEND" in
+    gemini) _llm_chat_gemini "$1" ;;
+    *)      _llm_chat_openai "$1" ;;
+  esac
+}
+
+_llm_chat_openai() {
   local messages_json="$1"
   local payload response content err_msg
 
@@ -93,6 +120,8 @@ _llm_chat() {
     return 1
   }
 
+  _USAGE_JSON=$(echo "$response" | jq -c '.usage // empty' 2>/dev/null || true)
+
   content=$(echo "$response" | jq -r '.choices[0].message.content // empty' 2>/dev/null)
   if [ -z "$content" ]; then
     err_msg=$(echo "$response" | jq -r '.error.message // "Unknown error"' 2>/dev/null)
@@ -102,9 +131,78 @@ _llm_chat() {
   echo "$content"
 }
 
+_llm_chat_gemini() {
+  local messages_json="$1"
+  local system_instruction="" contents payload response content err_msg
+
+  system_instruction=$(echo "$messages_json" | jq -r '
+    [.[] | select(.role == "system") | .content] | first // ""' 2>/dev/null)
+
+  contents=$(echo "$messages_json" | jq -c '
+    [.[] | select(.role != "system") |
+      if .role == "assistant" then {role: "model", parts: [{text: .content}]}
+      elif .role == "tool" then {role: "user", parts: [{text: "[Tool result]: \(.content)"}]}
+      else {role: "user", parts: [{text: .content}]}
+      end]' 2>/dev/null)
+
+  payload=$(jq -c -n \
+    --arg sys "$system_instruction" \
+    --argjson contents "$contents" \
+    '{
+      systemInstruction: {parts: [{text: $sys}]},
+      contents: $contents,
+      generationConfig: {temperature: 0.1, maxOutputTokens: 4096}
+    }' 2>/dev/null)
+
+  response=$(curl -sS --max-time 60 \
+    -H "Content-Type: application/json" \
+    -d "$payload" \
+    "${AI_ENDPOINT}/models/${AI_MODEL}:generateContent?key=${AI_API_KEY}" 2>/dev/null) || {
+    _err "API request failed"
+    return 1
+  }
+
+  _USAGE_JSON=$(echo "$response" | jq -c '.usageMetadata // empty' 2>/dev/null || true)
+
+  content=$(echo "$response" | jq -r '.candidates[0].content.parts[0].text // empty' 2>/dev/null)
+  if [ -z "$content" ]; then
+    err_msg=$(echo "$response" | jq -r '.error.message // "Unknown error"' 2>/dev/null)
+    _err "API error: $err_msg"
+    return 1
+  fi
+  echo "$content"
+}
+
+# ---- Blocked commands --------------------------------------------
+_is_blocked() {
+  local cmd="$1"
+  # Development / packaging commands that are outside sysadmin scope
+  if echo "$cmd" | grep -qE '(^|[;&|])[[:space:]]*(npm|npx|yarn|pnpm|bun|cargo|pipenv|poetry|mvn|gradle)[[:space:]]'; then
+    return 0
+  fi
+  if echo "$cmd" | grep -qE '(^|[;&|])[[:space:]]*pip[[:space:]]+install[[:space:]]+(-r|--requirement|\.)'; then
+    return 0
+  fi
+  if echo "$cmd" | grep -qE '(^|[;&|])[[:space:]]*(gem|bundle|composer)[[:space:]]+install'; then
+    return 0
+  fi
+  if echo "$cmd" | grep -qE '(^|[;&|])[[:space:]]*(dotnet|go)[[:space:]]+(build|run|new|mod)[[:space:]]'; then
+    return 0
+  fi
+  if echo "$cmd" | grep -qE '(create-react-app|^ng[[:space:]]+new|^vue[[:space:]]+create|^rails[[:space:]]+new)'; then
+    return 0
+  fi
+  return 1
+}
+
 # ---- Tool implementations ----------------------------------------
 _run_command() {
   local command="$1"
+  if _is_blocked "$command"; then
+    printf '{"error":"\u2717 Blocked: %s is a development/packaging command. Use your shell directly."}' \
+      "$(echo "$command" | head -c 200)"
+    return 0
+  fi
   if [ "$AI_SAFE_MODE" != "off" ]; then
     printf "\033[33m\u26a0\033[0m Run command? \033[2m%s\033[0m [Y/n] " "$command" >&2
     read -r reply
@@ -124,31 +222,6 @@ _read_file() {
     return 0
   fi
   head -c 10000 "$path" 2>/dev/null || printf '{"error":"Failed to read: %s"}' "$path"
-}
-
-_write_file() {
-  local path="$1" content="$2"
-  mkdir -p "$(dirname "$path")" 2>/dev/null || true
-  if printf '%s' "$content" > "$path" 2>/dev/null; then
-    printf '{"success":"Written to %s"}' "$path"
-  else
-    printf '{"error":"Failed to write: %s"}' "$path"
-  fi
-}
-
-_glob() {
-  local pattern="$1"
-  # Use find as a portable fallback
-  find . -path "./$pattern" -print 2>/dev/null || echo "No files matching: $pattern"
-}
-
-_grep() {
-  local pattern="$1" path="${2:-.}" include="${3:-}"
-  if [ -n "$include" ]; then
-    grep -rn --include="$include" "$pattern" "$path" 2>/dev/null | head -c 10000 || echo "No matches"
-  else
-    grep -rn "$pattern" "$path" 2>/dev/null | head -c 10000 || echo "No matches"
-  fi
 }
 
 _web_fetch() {
@@ -180,24 +253,6 @@ _exec_tool() {
       path=$(echo "$args_json" | jq -r '.path // empty')
       if [ -z "$path" ]; then echo '{"error":"Missing path argument"}'; else _read_file "$path"; fi
       ;;
-    write_file)
-      local path content
-      path=$(echo "$args_json" | jq -r '.path // empty')
-      content=$(echo "$args_json" | jq -r '.content // empty')
-      if [ -z "$path" ]; then echo '{"error":"Missing path argument"}'; else _write_file "$path" "$content"; fi
-      ;;
-    glob)
-      local pattern
-      pattern=$(echo "$args_json" | jq -r '.pattern // empty')
-      if [ -z "$pattern" ]; then echo '{"error":"Missing pattern argument"}'; else _glob "$pattern"; fi
-      ;;
-    grep)
-      local pattern search_path include
-      pattern=$(echo "$args_json" | jq -r '.pattern // empty')
-      search_path=$(echo "$args_json" | jq -r '.path // "."')
-      include=$(echo "$args_json" | jq -r '.include // ""')
-      if [ -z "$pattern" ]; then echo '{"error":"Missing pattern argument"}'; else _grep "$pattern" "$search_path" "$include"; fi
-      ;;
     web_fetch)
       local url
       url=$(echo "$args_json" | jq -r '.url // empty')
@@ -228,25 +283,15 @@ You are an AI assistant integrated into the user's terminal. You have access to 
    Args: {"path": "..."}
    Returns: File contents (truncated to 10000 chars)
 
-3. write_file -- Write content to a file
-   Args: {"path": "...", "content": "..."}
-   Returns: Success or error message
-
-4. glob -- Find files matching a glob pattern
-   Args: {"pattern": "..."}
-   Returns: List of matching file paths
-
-5. grep -- Search file contents for a regex pattern
-   Args: {"pattern": "...", "path": ".", "include": "*.js"}
-   Returns: Matching lines with file paths
-
-6. web_fetch -- Fetch the contents of a URL
+3. web_fetch -- Fetch the contents of a URL
    Args: {"url": "..."}
    Returns: Page content as text (truncated to 10000 chars)
 
-7. web_search -- Search the web for information
+4. web_search -- Search the web for information
    Args: {"query": "..."}
    Returns: Search result snippets
+
+For operations not listed above (writing files, finding files, searching text), use run_command with appropriate shell commands like cat/echo >, find, grep, etc.
 
 When you want to use a tool, respond with EXACTLY this JSON (no other text):
 {"tool": "tool_name", "args": {"arg1": "value1"}}
@@ -259,21 +304,23 @@ Rules:
 - If a tool returns an error, try an alternative approach.
 - Prefer read-only commands unless the user asks for modifications.
 - Escape all special characters in JSON strings properly.
+- Always end with a clear conversational summary. Interpret and distill raw output for the user; do not dump it verbatim.
+- Scope: system administration, file management, and shell scripting. Do not scaffold projects, run package managers (npm, cargo, pip install -r, etc.), start dev servers, or set up development environments.
 SYSPROMPT
 }
 
 # ---- ReAct loop ---------------------------------------------------
 _react_loop() {
   local query="$1"
-  local max_turns=8 turn=0
+  local max_turns=3 turn=0
   local msg_dir
   msg_dir=$(mktemp -d)
-  trap "rm -rf '$msg_dir'" EXIT
+  trap "_print_summary; rm -rf '$msg_dir'" EXIT
 
   _system_prompt > "$msg_dir/msg_000.json"
   jq -c -n --arg q "$query" '{role: "user", content: $q}' > "$msg_dir/msg_001.json"
 
-  local content tool args_json result tool_name answer
+  local content tool args_json result tool_name answer fallback=""
 
   while [ "$turn" -lt "$max_turns" ]; do
     turn=$((turn + 1))
@@ -283,22 +330,42 @@ _react_loop() {
       printf "\033[31m\u2717\033[0m Agent error -- aborting\n" >&2
       exit 1
     }
+
     local msg_num=$((turn * 2))
     printf '%s' "$content" | jq -c -R '{role: "assistant", content: .}' > "$msg_dir/msg_$(printf '%03d' $msg_num).json"
 
     tool_name=$(echo "$content" | jq -r '.tool // empty' 2>/dev/null)
     if [ -n "$tool_name" ]; then
       args_json=$(echo "$content" | jq -c '.args // {}' 2>/dev/null)
-      printf "\033[2m\u25b8 %s\033[0m\n" "$tool_name" >&2
+      local cmd_display
+      cmd_display=$(echo "$args_json" | jq -r '.command // .path // .pattern // ""' 2>/dev/null)
+      if [ -n "$cmd_display" ]; then
+        printf "\033[2m\u25b8 %s: %s\033[0m\n" "$tool_name" "$cmd_display" >&2
+      else
+        printf "\033[2m\u25b8 %s\033[0m\n" "$tool_name" >&2
+      fi
       result=$(_exec_tool "$tool_name" "$args_json")
+      fallback="$result"
+      if [ -n "$result" ] && [ "$result" != "null" ]; then
+        local esc=$'\033'
+        printf '%s\n' "$result" | sed "s/^/  ${esc}[36m/;s/$/${esc}[0m/" >&2
+      fi
       jq -c -n --arg r "$result" '{role: "tool", content: $r}' > "$msg_dir/msg_$(printf '%03d' $((msg_num + 1))).json"
+      sleep 1
     else
       answer=$(echo "$content" | jq -r '.answer // empty' 2>/dev/null)
+      printf "\033[2m\u2501\u2501\u2501\033[0m\n" >&2
       if [ -n "$answer" ]; then
-        printf '%s\n' "$answer"
+        printf '\033[1m%s\033[0m\n' "$answer"
+        return 0
+      elif [ -n "$content" ]; then
+        printf '\033[1m%s\033[0m\n' "$content"
+        return 0
+      elif [ -n "$fallback" ]; then
+        printf '\033[1mTool result:\033[0m\n%s\n' "$fallback"
         return 0
       else
-        printf '%s\n' "$content"
+        printf '\033[1mNo response from agent.\033[0m\n'
         return 0
       fi
     fi
@@ -309,13 +376,34 @@ _react_loop() {
 
 # ---- Commands -----------------------------------------------------
 _cmd_agent() {
-  if [ $# -eq 0 ]; then
-    _err "Usage: termeric ai agent <query>"
+  local noctx=0 args=()
+  for arg in "$@"; do
+    if [ "$arg" = "--noctx" ]; then noctx=1; else args+=("$arg"); fi
+  done
+  if [ ${#args[@]} -eq 0 ]; then
+    _err "Usage: termeric ai agent [--noctx] <query>"
     _err "  e.g.  termeric ai agent 'what files are in this directory?'"
     exit 1
   fi
   _load_config || exit 1
-  _react_loop "$*"
+
+  local query="${args[*]}"
+  if [ "$noctx" -eq 0 ]; then
+    local ctx_dir ctx_git ctx_git_status ctx_info=""
+    ctx_dir="${PWD/#$HOME/~}"
+    ctx_git=$(git branch --show-current 2>/dev/null) || ctx_git=""
+    if [ -n "$ctx_git" ]; then
+      ctx_info="pwd: $ctx_dir | git: $ctx_git"
+      ctx_git_status=$(git status --short 2>/dev/null | head -5)
+      if [ -n "$ctx_git_status" ]; then
+        ctx_info="$ctx_info [$(echo "$ctx_git_status" | wc -l) changes]"
+      fi
+    else
+      ctx_info="pwd: $ctx_dir"
+    fi
+    query="[ctx: $ctx_info] $query"
+  fi
+  _react_loop "$query"
 }
 
 _cmd_config() {
@@ -326,22 +414,24 @@ _cmd_config() {
 # Termeric AI configuration
 # Uncomment and set the backend you want to use.
 
-# Backend: groq (default), ollama, or openai
+# Backend: groq (default), ollama, openai, or gemini
 # AI_BACKEND=groq
 
 # API endpoint (leave blank for defaults):
 #   Groq:   https://api.groq.com/openai/v1
 #   Ollama: http://localhost:11434/v1
 #   OpenAI: https://api.openai.com/v1
+#   Gemini: https://generativelanguage.googleapis.com/v1beta
 # AI_ENDPOINT=
 
-# API key (required for Groq and OpenAI, not needed for Ollama)
+# API key (required for Groq, OpenAI, Gemini; not needed for Ollama)
 # AI_API_KEY=
 
 # Model name (leave blank for defaults):
 #   Groq:   llama-3.3-70b-versatile
 #   Ollama: llama3.1
 #   OpenAI: gpt-4o-mini
+#   Gemini: gemini-2.0-flash
 # AI_MODEL=
 
 # Safe mode: on (default) -- confirm before running commands
@@ -357,13 +447,13 @@ _cmd_doctor() {
   local issues=0
   _info "Checking AI dependencies..."
   if command -v curl &>/dev/null; then
-    _ok "curl"
+    _ok "curl $(curl --version 2>/dev/null | head -1 | awk '{print $2}')"
   else
     _err "curl -- required for API calls"
     issues=$((issues + 1))
   fi
   if command -v jq &>/dev/null; then
-    _ok "jq"
+    _ok "jq $(jq --version 2>/dev/null)"
   else
     _err "jq -- required for JSON processing"
     issues=$((issues + 1))
@@ -374,8 +464,17 @@ _cmd_doctor() {
   _info "Backend: $AI_BACKEND"
   _info "Model:   $AI_MODEL"
   _info "Endpoint: ${AI_ENDPOINT:-not set}"
+  if [ -f "$AI_CONFIG_FILE" ]; then
+    _ok "Config file: $AI_CONFIG_FILE"
+  else
+    _warn "Config file not found -- run: termeric ai config"
+  fi
   if [ -n "$AI_API_KEY" ]; then
-    _ok "API key configured"
+    if [ -n "${TERMERIC_AI_API_KEY:-}" ]; then
+      _ok "API key from env var TERMERIC_AI_API_KEY"
+    else
+      _ok "API key from config file"
+    fi
   else
     if [ "$AI_BACKEND" = "ollama" ]; then
       _info "API key not needed for Ollama"
@@ -386,10 +485,32 @@ _cmd_doctor() {
   fi
   _info "Safe mode: $AI_SAFE_MODE"
   echo ""
+  # Ollama-specific check
+  if [ "$AI_BACKEND" = "ollama" ]; then
+    _info "Checking Ollama connectivity..."
+    if curl -s --max-time 3 "http://localhost:11434/api/tags" >/dev/null 2>&1; then
+      _ok "Ollama reachable at localhost:11434"
+    else
+      _warn "Ollama not reachable at localhost:11434"
+      _info "  Make sure Ollama is installed and running: https://ollama.ai"
+    fi
+  fi
+  echo ""
   if [ "$issues" -eq 0 ]; then
     _ok "AI setup looks good!"
   else
     _warn "$issues issue(s) found"
+  fi
+}
+
+# ---- Cache clear ----------------------------------------------------
+_cmd_clear_cache() {
+  local cache_dir="${XDG_CACHE_HOME:-$HOME/.cache}/termeric"
+  if [ -d "$cache_dir" ]; then
+    rm -rf "$cache_dir"
+    _ok "Cache cleared ($cache_dir)"
+  else
+    _info "No cache found at $cache_dir"
   fi
 }
 
@@ -398,17 +519,21 @@ case "${1:-help}" in
   agent)  shift; _cmd_agent "$@" ;;
   config) _cmd_config ;;
   doctor) _cmd_doctor ;;
+  clear-cache|clear_cache) _cmd_clear_cache ;;
   help|--help|-h)
     echo "Usage: $0 <command>"
     echo ""
     echo "Commands:"
-    echo "  agent   Run the AI agent with a query"
-    echo "  config  Edit AI configuration"
-    echo "  doctor  Check AI dependencies"
+    echo "  agent [--noctx] <query>  Run the AI agent (--noctx disables context)"
+    echo "  config                   Edit AI configuration"
+    echo "  doctor                   Check AI dependencies"
+    echo "  clear-cache              Clear cached git status data"
+    echo ""
+    echo "Backends: groq (default), ollama, openai, gemini"
     ;;
   *)
     _err "Unknown command: $1"
-    echo "Usage: $0 {agent|config|doctor}"
+    echo "Usage: $0 {agent|config|doctor|clear-cache}"
     exit 1
     ;;
 esac

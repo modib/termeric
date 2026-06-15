@@ -158,8 +158,8 @@ __tmerm_git_info() {
         local cached_head cached_index
         read -r cached_head cached_index < "$cache_file" 2>/dev/null
         local cur_head cur_index
-        cur_head=$(stat -f '%m' "$head_file" 2>/dev/null || stat -c '%Y' "$head_file" 2>/dev/null)
-        cur_index=$(stat -f '%m' "$index_file" 2>/dev/null || stat -c '%Y' "$index_file" 2>/dev/null)
+        cur_head=$(stat -c '%Y' "$head_file" 2>/dev/null || stat -f '%m' "$head_file" 2>/dev/null)
+        cur_index=$(stat -c '%Y' "$index_file" 2>/dev/null || stat -f '%m' "$index_file" 2>/dev/null)
         if [[ "$cur_head" == "$cached_head" && "$cur_index" == "$cached_index" ]]; then
             if [[ -f "$result_file" ]]; then
                 cat "$result_file"
@@ -503,23 +503,48 @@ precmd_functions+=(__termeric_prompt)
 # ── AI agent ─────────────────────────────────────────────────────
 ai() {
   if [ $# -eq 0 ]; then
-    printf "Usage: ai <query>\n"
+    printf "Usage: ai [--noctx] <query>\n"
     printf "  Talk to the AI agent directly from your shell\n"
     return 1
   fi
-  local cmd
+  local cmd noctx=0 args=() arg
+  for arg in "$@"; do
+    if [ "$arg" = "--noctx" ]; then noctx=1; else args+=("$arg"); fi
+  done
+  if [ ${#args[@]} -eq 0 ]; then
+    printf "Usage: ai [--noctx] <query>\n"
+    return 1
+  fi
   cmd=$(command -v termeric 2>/dev/null) || cmd="$HOME/.local/bin/termeric"
   if [ ! -x "$cmd" ]; then
     echo "termeric not found in PATH. Run 'termeric install' first." >&2
     return 1
   fi
-  "$cmd" ai agent "$@"
+  local query="${args[*]}"
+  if [ "$noctx" -eq 0 ]; then
+    local ctx_dir ctx_git ctx_git_status ctx_hist ctx_info
+    ctx_dir="${PWD/#$HOME/~}"
+    ctx_git=$(git branch --show-current 2>/dev/null) || ctx_git=""
+    if [ -n "$ctx_git" ]; then
+      ctx_info="pwd: $ctx_dir | git: $ctx_git"
+      ctx_git_status=$(git status --short 2>/dev/null | head -5)
+      if [ -n "$ctx_git_status" ]; then
+        ctx_info="$ctx_info [$(echo "$ctx_git_status" | wc -l) changes]"
+      fi
+    else
+      ctx_info="pwd: $ctx_dir"
+    fi
+    ctx_hist=$(fc -ln -3 2>/dev/null | tr '\n' '; ' || true)
+    [ -n "$ctx_hist" ] && ctx_info="$ctx_info | hist: $ctx_hist"
+    query="[ctx: $ctx_info] $query"
+  fi
+  "$cmd" ai agent --noctx "$query"
 }
 
-# ── / prefix intercept ─────────────────────────────────────────
+# ── @ prefix intercept ─────────────────────────────────────────
 _termeric_accept_line() {
   local buf="$BUFFER"
-  if [[ "$buf" =~ ^/(.+)$ ]]; then
+  if [[ "$buf" =~ ^@(.+)$ ]]; then
     BUFFER="ai ${match[1]}"
   fi
   zle .accept-line

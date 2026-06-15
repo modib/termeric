@@ -109,11 +109,23 @@ All features controlled via `on`/`off` values. Backward compat: `1`/`0` also acc
 
 ### Phase 4 — Done
 - AI agent with Groq/Ollama/OpenAI support (`ai/termeric_ai`)
-  - ReAct loop with 7 tools (run_command, read_file, write_file, glob, grep, web_fetch, web_search)
+  - ReAct loop with 4 tools (run_command, read_file, web_fetch, web_search); LLM uses run_command for file writes, find, grep
   - Config via `~/.config/termeric/config` and env vars
   - Safe mode (confirm before running commands)
 - `termeric ai` CLI subcommand (agent/config/doctor)
 - `ai()` shell function in bash/zsh/fish
-- `/` prefix intercept in zsh (accept-line widget) and fish (fish_preexec)
+- `@` prefix intercept in zsh (accept-line widget) and fish (fish_preexec)
 - Test coverage: 20 AI-specific tests (syntax, config, tools, safe mode, ReAct loop, edge cases)
 - Distribution packaging: deb, rpm, AUR, Homebrew all ship `ai/termeric_ai`
+
+### Phase 5 — Done
+- Replaced SSE streaming LLM calls with non-streaming calls (fixes empty second-turn response bug)
+- Reduced ReAct loop from 8 turns to 3 turns max
+- Added 1-second delay between turns (rate-limit mitigation for Groq free tier)
+- Added developer command blocklist (`_is_blocked`):
+  - Blocks: npm, npx, yarn, pnpm, bun, cargo, pip install -r, gem install, bundle install, composer install, dotnet build/run/new, go build/run/mod, mvn, gradle, scaffolding commands
+  - Allows: pip install single package, shell scripting tools, sysadmin commands
+- Added scope rule to system prompt: system administration, file management, shell scripting only
+- Added fallback for empty LLM response: shows raw tool result instead of blank answer
+- Captures usage metadata from non-streaming JSON response for `_print_summary`
+- Test coverage: 8 additional tests (blocklist × 4, scope rule, two-turn flow, fallback, system prompt scope)

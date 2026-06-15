@@ -183,8 +183,8 @@ function __tmerm_git_info
     if test -f "$cache_file"
         set -l cached_head (cat "$cache_file" | string split ' ')[1]
         set -l cached_index (cat "$cache_file" | string split ' ')[2]
-        set -l cur_head (stat -f '%m' "$head_file" 2>/dev/null; or stat -c '%Y' "$head_file" 2>/dev/null)
-        set -l cur_index (stat -f '%m' "$index_file" 2>/dev/null; or stat -c '%Y' "$index_file" 2>/dev/null)
+        set -l cur_head (stat -c '%Y' "$head_file" 2>/dev/null; or stat -f '%m' "$head_file" 2>/dev/null)
+        set -l cur_index (stat -c '%Y' "$index_file" 2>/dev/null; or stat -f '%m' "$index_file" 2>/dev/null)
         if test "$cur_head" = "$cached_head"; and test "$cur_index" = "$cached_index"
             if test -f "$result_file"
                 cat "$result_file"
@@ -582,7 +582,7 @@ end
 # ── AI agent ────────────────────────────────────────────────────
 function ai --description "Talk to the AI agent from your shell"
     if test (count $argv) -eq 0
-        echo "Usage: ai <query>"
+        echo "Usage: ai [--noctx] <query>"
         echo "  Talk to the AI agent directly from your shell"
         return 1
     end
@@ -591,13 +591,44 @@ function ai --description "Talk to the AI agent from your shell"
         echo "termeric not found in PATH. Run 'termeric install' first." >&2
         return 1
     end
-    eval $cmd ai agent $argv
+    set -l noctx 0
+    set -l args
+    for arg in $argv
+        if test "$arg" = "--noctx"
+            set noctx 1
+        else
+            set -a args $arg
+        end
+    end
+    if test (count $args) -eq 0
+        echo "Usage: ai [--noctx] <query>"
+        return 1
+    end
+    set -l query (string join " " -- $args)
+    if test "$noctx" -eq 0
+        set -l ctx_dir (string replace -r "^$HOME" "~" -- (pwd))
+        set -l ctx_git (git branch --show-current 2>/dev/null; or echo "")
+        set -l ctx_info "pwd: $ctx_dir"
+        if test -n "$ctx_git"
+            set ctx_info "pwd: $ctx_dir | git: $ctx_git"
+            set -l ctx_git_status (git status --short 2>/dev/null | head -5)
+            if test -n "$ctx_git_status"
+                set ctx_info "$ctx_info ["(count $ctx_git_status)" changes]"
+            end
+        end
+        set -l ctx_hist (history -n 3 2>/dev/null | string join " ; " || echo "")
+        if test -n "$ctx_hist"
+            set ctx_info "$ctx_info | hist: $ctx_hist"
+        end
+        set query "[ctx: $ctx_info] $query"
+    end
+    eval $cmd ai agent --noctx $query
 end
 
-# ── / prefix intercept ─────────────────────────────────────────
+# ── @ prefix intercept ─────────────────────────────────────────
 function _termeric_preexec --on-event fish_preexec
-    if string match -r '^/(.+)$' -- $argv[1] &>/dev/null
-        ai (string replace -r '^/(.+)$' '$1' -- $argv[1])
+    if string match -r '^@(.+)$' -- $argv[1] &>/dev/null
+        ai (string replace -r '^@(.+)$' '$1' -- $argv[1])
         return 1
     end
 end

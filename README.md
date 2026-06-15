@@ -154,9 +154,9 @@ Termeric includes a terminal-based AI agent with ReAct loop (tool-using reasonin
 ### Commands
 
 ```
-termeric ai agent <query>       # Run the AI agent
-termeric ai config              # Edit AI configuration
-termeric ai doctor              # Check AI dependencies
+termeric ai agent [--noctx] <query>       # Run the AI agent (--noctx disables context)
+termeric ai config                        # Edit AI configuration
+termeric ai doctor                        # Check AI dependencies
 ```
 
 ### Shell Functions
@@ -179,7 +179,7 @@ Edit `~/.config/termeric/config` via `termeric ai config`, or set environment va
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `AI_BACKEND` | `groq` | Backend: `groq`, `ollama`, or `openai` |
+| `AI_BACKEND` | `groq` | Backend: `groq`, `ollama`, `openai`, or `gemini` |
 | `AI_ENDPOINT` | *(auto)* | API endpoint URL |
 | `AI_API_KEY` | — | API key (required for Groq and OpenAI) |
 | `AI_MODEL` | *(auto)* | Model name |
@@ -199,6 +199,7 @@ export TERMERIC_AI_API_KEY=gsk-your-key
 | **Groq** | `https://api.groq.com/openai/v1` | `llama-3.3-70b-versatile` |
 | **Ollama** | `http://localhost:11434/v1` | `llama3.1` |
 | **OpenAI** | `https://api.openai.com/v1` | `gpt-4o-mini` |
+| **Gemini** | `https://generativelanguage.googleapis.com/v1beta` | `gemini-2.0-flash` |
 
 ## Documentation
 

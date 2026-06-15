@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-TERMERIC_VERSION="1.6.0"
+TERMERIC_VERSION="1.7.0"
 TERMERIC_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 
 # Detect share directory (Homebrew pkgshare puts files under share/termeric/)
@@ -42,6 +42,7 @@ _show_help() {
 		"  config        Open config in \$EDITOR" \
 		"  status        Show current settings and diagnostics" \
 		"  ai            AI agent commands (agent/config/doctor)" \
+		"  clear-cache   Clear cached git status data" \
 		"  font          Install Meslo Nerd Font" \
 		"  doctor        Check system compatibility" \
 		"  version       Show version" \
@@ -436,7 +437,10 @@ _cmd_status() {
 		eval "env_set=\"\${$name+set}\""
 		eval "env_val=\"\${$name:-$default}\""
 		rc_val="$(_get_rc_val "$name" "$shell_name")"
-		local display_val="${rc_val:-$env_val}"
+		local display_val="$env_val"
+		if [ "$env_set" != "set" ] && [ -n "$rc_val" ]; then
+			display_val="$rc_val"
+		fi
 		if [ "$display_val" = "off" ] 2>/dev/null; then
 			printf "  %-30s (disabled)" "${name}=${display_val}"
 		else
@@ -445,7 +449,7 @@ _cmd_status() {
 		if [ "$env_set" = "set" ] && [ "$env_val" != "$display_val" ]; then
 			printf " (session: %s)" "$env_val"
 		fi
-		if [ -n "$rc_val" ] && [ "$rc_val" != "$display_val" ]; then
+		if [ -n "$rc_val" ] && [ "$rc_val" != "$env_val" ]; then
 			printf " (rc: %s)" "$rc_val"
 		fi
 		printf "\n"
@@ -667,6 +671,7 @@ update) _cmd_update ;;
 config) _cmd_config ;;
 status) _cmd_status ;;
 ai) shift; _cmd_ai "$@" ;;
+clear-cache) shift; _cmd_ai clear-cache "$@" ;;
 font) _cmd_font ;;
 doctor) _cmd_doctor ;;
 version) _cmd_version ;;
