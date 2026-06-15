@@ -141,7 +141,6 @@ _llm_chat_gemini() {
   contents=$(echo "$messages_json" | jq -c '
     [.[] | select(.role != "system") |
       if .role == "assistant" then {role: "model", parts: [{text: .content}]}
-      elif .role == "tool" then {role: "user", parts: [{text: "[Tool result]: \(.content)"}]}
       else {role: "user", parts: [{text: .content}]}
       end]' 2>/dev/null)
 
@@ -350,7 +349,7 @@ _react_loop() {
         local esc=$'\033'
         printf '%s\n' "$result" | sed "s/^/  ${esc}[36m/;s/$/${esc}[0m/" >&2
       fi
-      jq -c -n --arg r "$result" '{role: "tool", content: $r}' > "$msg_dir/msg_$(printf '%03d' $((msg_num + 1))).json"
+      jq -c -n --arg r "$result" '{role: "user", content: "[Tool result]: \($r)"}' > "$msg_dir/msg_$(printf '%03d' $((msg_num + 1))).json"
       sleep 1
     else
       answer=$(echo "$content" | jq -r '.answer // empty' 2>/dev/null)

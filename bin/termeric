@@ -2,7 +2,7 @@
 set -euo pipefail
 
 TERMERIC_VERSION="1.7.0"
-TERMERIC_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+TERMERIC_DIR="$(cd "$(dirname "$(readlink -f "$0")")/.." && pwd)"
 
 # Detect share directory (Homebrew pkgshare puts files under share/termeric/)
 TERMERIC_SHARE="$TERMERIC_DIR"
