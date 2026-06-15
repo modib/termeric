@@ -1,5 +1,5 @@
 Name:           termeric
-Version:        1.4.0
+Version:        1.6.0
 Release:        1%{?dist}
 Summary:        Golden prompts for your terminal
 License:        MIT
@@ -7,7 +7,7 @@ URL:            https://modib.github.io/termeric/
 Source0:        %{name}-%{version}.tar.gz
 
 BuildArch:      noarch
-Requires:       bash zsh git
+Requires:       bash zsh git jq curl
 
 %description
 AI-powered, modernized shell prompt for bash, zsh, and fish with
@@ -27,6 +27,8 @@ install -m 755 bin/termeric %{buildroot}/usr/bin/termeric
 install -m 644 termeric_bash %{buildroot}/usr/share/%{name}/
 install -m 644 termeric_zsh %{buildroot}/usr/share/%{name}/
 install -m 644 termeric_fish %{buildroot}/usr/share/%{name}/
+install -m 755 -d %{buildroot}/usr/share/%{name}/ai
+install -m 644 ai/termeric_ai %{buildroot}/usr/share/%{name}/ai/
 install -m 644 completions/termeric.bash %{buildroot}/usr/share/bash-completion/completions/termeric
 install -m 644 completions/termeric.zsh %{buildroot}/usr/share/zsh/site-functions/_termeric
 install -m 644 completions/termeric.fish %{buildroot}/usr/share/fish/vendor_completions.d/termeric.fish
@@ -43,3 +45,4 @@ echo "termeric installed! Run 'termeric install' to activate."
 /usr/share/bash-completion/completions/termeric
 /usr/share/zsh/site-functions/_termeric
 /usr/share/fish/vendor_completions.d/termeric.fish
+/usr/share/%{name}/ai/termeric_ai

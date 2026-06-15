@@ -23,6 +23,7 @@ jobs:
           sudo apt-get update && sudo apt-get install -y zsh fish
           bash -n termeric_bash
           bash -n bin/termeric
+          bash -n ai/termeric_ai
           zsh -n termeric_zsh
           fish -n termeric_fish
           ./bin/termeric version
@@ -33,7 +34,7 @@ jobs:
         run: |
           tar czf termeric-${{ steps.version.outputs.version }}.tar.gz \
             --transform='s,^,termeric-${{ steps.version.outputs.version }}/,' \
-            termeric_bash termeric_zsh termeric_fish bin/ completions/ packaging/ LICENSE README.md VERSION
+            termeric_bash termeric_zsh termeric_fish ai/ bin/ completions/ packaging/ LICENSE README.md VERSION
 
       - name: Build deb package
         run: |
@@ -44,6 +45,8 @@ jobs:
           mkdir -p /tmp/termeric-pkg/usr/share/zsh/site-functions
           mkdir -p /tmp/termeric-pkg/usr/share/fish/vendor_completions.d
           cp bin/termeric /tmp/termeric-pkg/usr/bin/
+          mkdir -p /tmp/termeric-pkg/usr/share/termeric/ai
+          cp ai/termeric_ai /tmp/termeric-pkg/usr/share/termeric/ai/
           cp termeric_bash termeric_zsh termeric_fish /tmp/termeric-pkg/usr/share/termeric/
           cp completions/termeric.bash /tmp/termeric-pkg/usr/share/bash-completion/completions/termeric
           cp completions/termeric.zsh /tmp/termeric-pkg/usr/share/zsh/site-functions/_termeric
@@ -54,7 +57,7 @@ jobs:
           Section: utils
           Priority: optional
           Architecture: all
-          Depends: bash, zsh, git
+           Depends: bash, zsh, git, jq, curl
           Maintainer: modib <noreply@github.com>
           Homepage: https://modib.github.io/termeric/
           Description: Golden prompts for your terminal
@@ -69,7 +72,15 @@ jobs:
           body: |
             ## termeric ${{ steps.version.outputs.version }}
 
-            Golden prompts for your terminal.
+            Golden prompts for your terminal — now with AI agent support.
+
+            **New in 1.6.0:**
+            - AI agent with Groq/Ollama/OpenAI backend support
+            - ReAct loop with 7 tools (run_command, read_file, write_file, glob, grep, web_fetch, web_search)
+            - Safe mode: confirm before running commands
+            - `termeric ai agent|config|doctor` CLI subcommands
+            - `ai()` shell function in bash, zsh, fish
+            - `/` prefix intercept in zsh and fish (type `// query` to talk to AI)
 
               ### Install
 

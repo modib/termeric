@@ -1,0 +1,414 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# termeric AI -- ReAct agent with Groq / Ollama / OpenAI support
+# Usage: ai/termeric_ai agent <query>
+#        ai/termeric_ai config
+#        ai/termeric_ai doctor
+
+TERMERIC_AI_VERSION="1.6.0"
+
+# ---- Helpers ----------------------------------------------------
+_info() { printf "\033[36m▸\033[0m %s\n" "$*"; }
+_ok()   { printf "\033[32m✓\033[0m %s\n" "$*"; }
+_warn() { printf "\033[33m⚠\033[0m %s\n" "$*" >&2; }
+_err()  { printf "\033[31m✗\033[0m %s\n" "$*" >&2; }
+
+# ---- Config ------------------------------------------------------
+AI_CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/termeric"
+AI_CONFIG_FILE="$AI_CONFIG_DIR/config"
+AI_BACKEND=""
+AI_ENDPOINT=""
+AI_API_KEY=""
+AI_MODEL=""
+AI_SAFE_MODE="on"
+
+_load_config() {
+  if [ -f "$AI_CONFIG_FILE" ]; then
+    while IFS='=' read -r key value; do
+      key=$(printf '%s' "$key" | xargs)
+      value=$(printf '%s' "$value" | xargs)
+      case "$key" in
+        AI_BACKEND)   AI_BACKEND="$value" ;;
+        AI_ENDPOINT)  AI_ENDPOINT="$value" ;;
+        AI_API_KEY)   AI_API_KEY="$value" ;;
+        AI_MODEL)     AI_MODEL="$value" ;;
+        AI_SAFE_MODE) AI_SAFE_MODE="$value" ;;
+      esac
+    done < "$AI_CONFIG_FILE"
+  fi
+  AI_BACKEND="${TERMERIC_AI_BACKEND:-${AI_BACKEND:-groq}}"
+  AI_ENDPOINT="${TERMERIC_AI_ENDPOINT:-$AI_ENDPOINT}"
+  AI_API_KEY="${TERMERIC_AI_API_KEY:-$AI_API_KEY}"
+  AI_MODEL="${TERMERIC_AI_MODEL:-$AI_MODEL}"
+  AI_SAFE_MODE="${TERMERIC_AI_SAFE_MODE:-${AI_SAFE_MODE:-on}}"
+  case "$AI_BACKEND" in
+    groq)
+      AI_ENDPOINT="${AI_ENDPOINT:-https://api.groq.com/openai/v1}"
+      AI_MODEL="${AI_MODEL:-llama-3.3-70b-versatile}"
+      if [ -z "$AI_API_KEY" ]; then
+        _err "AI_API_KEY not set for Groq backend"
+        _info "Set TERMERIC_AI_API_KEY or run: termeric ai config"
+        return 1
+      fi
+      ;;
+    ollama)
+      AI_ENDPOINT="${AI_ENDPOINT:-http://localhost:11434/v1}"
+      AI_MODEL="${AI_MODEL:-llama3.1}"
+      ;;
+    openai)
+      AI_ENDPOINT="${AI_ENDPOINT:-https://api.openai.com/v1}"
+      AI_MODEL="${AI_MODEL:-gpt-4o-mini}"
+      if [ -z "$AI_API_KEY" ]; then
+        _err "AI_API_KEY not set for OpenAI backend"
+        return 1
+      fi
+      ;;
+    *)
+      _err "Unknown backend '$AI_BACKEND'. Valid: groq, ollama, openai"
+      return 1
+      ;;
+  esac
+}
+
+# ---- LLM call ----------------------------------------------------
+_llm_chat() {
+  local messages_json="$1"
+  local payload response content err_msg
+
+  payload=$(printf '%s' "$messages_json" | jq -c \
+    --arg model "$AI_MODEL" \
+    '{model: $model, messages: ., temperature: 0.1, max_tokens: 4096, stream: false}')
+
+  local args=()
+  args+=(-sS --max-time 60)
+  args+=(-H "Content-Type: application/json")
+  if [ -n "$AI_API_KEY" ]; then
+    args+=(-H "Authorization: Bearer $AI_API_KEY")
+  fi
+  args+=(-d "$payload")
+
+  response=$(curl "${args[@]}" "${AI_ENDPOINT}/chat/completions" 2>/dev/null) || {
+    _err "API request failed"
+    return 1
+  }
+
+  content=$(echo "$response" | jq -r '.choices[0].message.content // empty' 2>/dev/null)
+  if [ -z "$content" ]; then
+    err_msg=$(echo "$response" | jq -r '.error.message // "Unknown error"' 2>/dev/null)
+    _err "API error: $err_msg"
+    return 1
+  fi
+  echo "$content"
+}
+
+# ---- Tool implementations ----------------------------------------
+_run_command() {
+  local command="$1"
+  if [ "$AI_SAFE_MODE" != "off" ]; then
+    printf "\033[33m\u26a0\033[0m Run command? \033[2m%s\033[0m [Y/n] " "$command" >&2
+    read -r reply
+    case "$reply" in
+      n|N|no|NO) echo '{"error":"Command rejected by user"}'; return 0 ;;
+    esac
+  fi
+  local result
+  result=$(eval "$command" 2>&1) || true
+  printf '%s' "$result" | head -c 10000
+}
+
+_read_file() {
+  local path="$1"
+  if [ ! -f "$path" ] && [ ! -r "$path" ]; then
+    printf '{"error":"File not found: %s"}' "$path"
+    return 0
+  fi
+  head -c 10000 "$path" 2>/dev/null || printf '{"error":"Failed to read: %s"}' "$path"
+}
+
+_write_file() {
+  local path="$1" content="$2"
+  mkdir -p "$(dirname "$path")" 2>/dev/null || true
+  if printf '%s' "$content" > "$path" 2>/dev/null; then
+    printf '{"success":"Written to %s"}' "$path"
+  else
+    printf '{"error":"Failed to write: %s"}' "$path"
+  fi
+}
+
+_glob() {
+  local pattern="$1"
+  # Use find as a portable fallback
+  find . -path "./$pattern" -print 2>/dev/null || echo "No files matching: $pattern"
+}
+
+_grep() {
+  local pattern="$1" path="${2:-.}" include="${3:-}"
+  if [ -n "$include" ]; then
+    grep -rn --include="$include" "$pattern" "$path" 2>/dev/null | head -c 10000 || echo "No matches"
+  else
+    grep -rn "$pattern" "$path" 2>/dev/null | head -c 10000 || echo "No matches"
+  fi
+}
+
+_web_fetch() {
+  local url="$1"
+  curl -sL --max-time 15 "$url" 2>/dev/null | head -c 10000 || printf '{"error":"Failed to fetch: %s"}' "$url"
+}
+
+_web_search() {
+  local query="$1"
+  local encoded
+  encoded=$(printf '%s' "$query" | jq -sRr @uri)
+  curl -sL --max-time 15 "https://html.duckduckgo.com/html/?q=${encoded}" 2>/dev/null |
+    sed -n 's/.*class="result__snippet">\(.*\)<\/a>.*/\1/p' |
+    sed 's/<[^>]*>//g' |
+    head -10 || echo "No results"
+}
+
+# ---- Tool dispatch ------------------------------------------------
+_exec_tool() {
+  local tool="$1" args_json="$2"
+  case "$tool" in
+    run_command)
+      local cmd
+      cmd=$(echo "$args_json" | jq -r '.command // empty')
+      if [ -z "$cmd" ]; then echo '{"error":"Missing command argument"}'; else _run_command "$cmd"; fi
+      ;;
+    read_file)
+      local path
+      path=$(echo "$args_json" | jq -r '.path // empty')
+      if [ -z "$path" ]; then echo '{"error":"Missing path argument"}'; else _read_file "$path"; fi
+      ;;
+    write_file)
+      local path content
+      path=$(echo "$args_json" | jq -r '.path // empty')
+      content=$(echo "$args_json" | jq -r '.content // empty')
+      if [ -z "$path" ]; then echo '{"error":"Missing path argument"}'; else _write_file "$path" "$content"; fi
+      ;;
+    glob)
+      local pattern
+      pattern=$(echo "$args_json" | jq -r '.pattern // empty')
+      if [ -z "$pattern" ]; then echo '{"error":"Missing pattern argument"}'; else _glob "$pattern"; fi
+      ;;
+    grep)
+      local pattern search_path include
+      pattern=$(echo "$args_json" | jq -r '.pattern // empty')
+      search_path=$(echo "$args_json" | jq -r '.path // "."')
+      include=$(echo "$args_json" | jq -r '.include // ""')
+      if [ -z "$pattern" ]; then echo '{"error":"Missing pattern argument"}'; else _grep "$pattern" "$search_path" "$include"; fi
+      ;;
+    web_fetch)
+      local url
+      url=$(echo "$args_json" | jq -r '.url // empty')
+      if [ -z "$url" ]; then echo '{"error":"Missing url argument"}'; else _web_fetch "$url"; fi
+      ;;
+    web_search)
+      local query
+      query=$(echo "$args_json" | jq -r '.query // empty')
+      if [ -z "$query" ]; then echo '{"error":"Missing query argument"}'; else _web_search "$query"; fi
+      ;;
+    *)
+      printf '{"error":"Unknown tool: %s"}' "$tool"
+      ;;
+  esac
+}
+
+# ---- System prompt ------------------------------------------------
+_system_prompt() {
+  jq -Rs '{role: "system", content: .}' << 'SYSPROMPT'
+You are an AI assistant integrated into the user's terminal. You have access to these tools:
+
+1. run_command -- Execute a shell command
+   Args: {"command": "..."}
+   Returns: stdout and stderr of the command. Use for exploring, builds, git, etc.
+   NEVER run destructive commands without explicit user permission.
+
+2. read_file -- Read the contents of a file
+   Args: {"path": "..."}
+   Returns: File contents (truncated to 10000 chars)
+
+3. write_file -- Write content to a file
+   Args: {"path": "...", "content": "..."}
+   Returns: Success or error message
+
+4. glob -- Find files matching a glob pattern
+   Args: {"pattern": "..."}
+   Returns: List of matching file paths
+
+5. grep -- Search file contents for a regex pattern
+   Args: {"pattern": "...", "path": ".", "include": "*.js"}
+   Returns: Matching lines with file paths
+
+6. web_fetch -- Fetch the contents of a URL
+   Args: {"url": "..."}
+   Returns: Page content as text (truncated to 10000 chars)
+
+7. web_search -- Search the web for information
+   Args: {"query": "..."}
+   Returns: Search result snippets
+
+When you want to use a tool, respond with EXACTLY this JSON (no other text):
+{"tool": "tool_name", "args": {"arg1": "value1"}}
+
+When you have the final answer, respond with EXACTLY this JSON (no other text):
+{"answer": "Your response to the user"}
+
+Rules:
+- Be concise but thorough. Use tools to gather information before answering.
+- If a tool returns an error, try an alternative approach.
+- Prefer read-only commands unless the user asks for modifications.
+- Escape all special characters in JSON strings properly.
+SYSPROMPT
+}
+
+# ---- ReAct loop ---------------------------------------------------
+_react_loop() {
+  local query="$1"
+  local max_turns=8 turn=0
+  local msg_dir
+  msg_dir=$(mktemp -d)
+  trap "rm -rf '$msg_dir'" EXIT
+
+  _system_prompt > "$msg_dir/msg_000.json"
+  jq -c -n --arg q "$query" '{role: "user", content: $q}' > "$msg_dir/msg_001.json"
+
+  local content tool args_json result tool_name answer
+
+  while [ "$turn" -lt "$max_turns" ]; do
+    turn=$((turn + 1))
+    local messages_json
+    messages_json=$(jq -s '.' "$msg_dir"/msg_*.json)
+    content=$(_llm_chat "$messages_json") || {
+      printf "\033[31m\u2717\033[0m Agent error -- aborting\n" >&2
+      exit 1
+    }
+    local msg_num=$((turn * 2))
+    printf '%s' "$content" | jq -c -R '{role: "assistant", content: .}' > "$msg_dir/msg_$(printf '%03d' $msg_num).json"
+
+    tool_name=$(echo "$content" | jq -r '.tool // empty' 2>/dev/null)
+    if [ -n "$tool_name" ]; then
+      args_json=$(echo "$content" | jq -c '.args // {}' 2>/dev/null)
+      printf "\033[2m\u25b8 %s\033[0m\n" "$tool_name" >&2
+      result=$(_exec_tool "$tool_name" "$args_json")
+      jq -c -n --arg r "$result" '{role: "tool", content: $r}' > "$msg_dir/msg_$(printf '%03d' $((msg_num + 1))).json"
+    else
+      answer=$(echo "$content" | jq -r '.answer // empty' 2>/dev/null)
+      if [ -n "$answer" ]; then
+        printf '%s\n' "$answer"
+        return 0
+      else
+        printf '%s\n' "$content"
+        return 0
+      fi
+    fi
+  done
+  _warn "Reached max $max_turns turns without a final answer"
+  return 1
+}
+
+# ---- Commands -----------------------------------------------------
+_cmd_agent() {
+  if [ $# -eq 0 ]; then
+    _err "Usage: termeric ai agent <query>"
+    _err "  e.g.  termeric ai agent 'what files are in this directory?'"
+    exit 1
+  fi
+  _load_config || exit 1
+  _react_loop "$*"
+}
+
+_cmd_config() {
+  _load_config 2>/dev/null || true
+  mkdir -p "$AI_CONFIG_DIR"
+  if [ ! -f "$AI_CONFIG_FILE" ]; then
+    cat > "$AI_CONFIG_FILE" << 'CONF'
+# Termeric AI configuration
+# Uncomment and set the backend you want to use.
+
+# Backend: groq (default), ollama, or openai
+# AI_BACKEND=groq
+
+# API endpoint (leave blank for defaults):
+#   Groq:   https://api.groq.com/openai/v1
+#   Ollama: http://localhost:11434/v1
+#   OpenAI: https://api.openai.com/v1
+# AI_ENDPOINT=
+
+# API key (required for Groq and OpenAI, not needed for Ollama)
+# AI_API_KEY=
+
+# Model name (leave blank for defaults):
+#   Groq:   llama-3.3-70b-versatile
+#   Ollama: llama3.1
+#   OpenAI: gpt-4o-mini
+# AI_MODEL=
+
+# Safe mode: on (default) -- confirm before running commands
+#             off -- run all commands without asking
+# AI_SAFE_MODE=on
+CONF
+    _ok "Created AI config at $AI_CONFIG_FILE"
+  fi
+  "${EDITOR:-vi}" "$AI_CONFIG_FILE"
+}
+
+_cmd_doctor() {
+  local issues=0
+  _info "Checking AI dependencies..."
+  if command -v curl &>/dev/null; then
+    _ok "curl"
+  else
+    _err "curl -- required for API calls"
+    issues=$((issues + 1))
+  fi
+  if command -v jq &>/dev/null; then
+    _ok "jq"
+  else
+    _err "jq -- required for JSON processing"
+    issues=$((issues + 1))
+  fi
+  # Load config silently for doctor
+  _load_config &>/dev/null || true
+  echo ""
+  _info "Backend: $AI_BACKEND"
+  _info "Model:   $AI_MODEL"
+  _info "Endpoint: ${AI_ENDPOINT:-not set}"
+  if [ -n "$AI_API_KEY" ]; then
+    _ok "API key configured"
+  else
+    if [ "$AI_BACKEND" = "ollama" ]; then
+      _info "API key not needed for Ollama"
+    else
+      _warn "API key not configured -- run: termeric ai config"
+      issues=$((issues + 1))
+    fi
+  fi
+  _info "Safe mode: $AI_SAFE_MODE"
+  echo ""
+  if [ "$issues" -eq 0 ]; then
+    _ok "AI setup looks good!"
+  else
+    _warn "$issues issue(s) found"
+  fi
+}
+
+# ---- Main --------------------------------------------------------
+case "${1:-help}" in
+  agent)  shift; _cmd_agent "$@" ;;
+  config) _cmd_config ;;
+  doctor) _cmd_doctor ;;
+  help|--help|-h)
+    echo "Usage: $0 <command>"
+    echo ""
+    echo "Commands:"
+    echo "  agent   Run the AI agent with a query"
+    echo "  config  Edit AI configuration"
+    echo "  doctor  Check AI dependencies"
+    ;;
+  *)
+    _err "Unknown command: $1"
+    echo "Usage: $0 {agent|config|doctor}"
+    exit 1
+    ;;
+esac

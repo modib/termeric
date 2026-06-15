@@ -10,6 +10,7 @@ complete -c termeric -n __fish_use_subcommand -a config -d 'Open config in \$EDI
 complete -c termeric -n __fish_use_subcommand -a status -d 'Show current settings and diagnostics'
 complete -c termeric -n __fish_use_subcommand -a font -d 'Install Meslo Nerd Font'
 complete -c termeric -n __fish_use_subcommand -a doctor -d 'Check system compatibility'
+complete -c termeric -n __fish_use_subcommand -a ai -d 'AI agent commands (agent/config/doctor)'
 complete -c termeric -n __fish_use_subcommand -a version -d 'Show version'
 complete -c termeric -n __fish_use_subcommand -a help -d 'Show help message'
 

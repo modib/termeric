@@ -12,6 +12,7 @@
 #   set -g PROMPT_VENV off        Show Python virtualenv/conda name (default: off)
 #   set -g PROMPT_NODE off        Show Node.js version (default: off)
 #   set -g PROMPT_K8S off         Show Kubernetes context (default: off)
+#   ai (shell function)           AI agent with Groq/Ollama/OpenAI (run 'ai help' in shell)
 
 # ── Defaults ────────────────────────────────────────────────────
 set -q PROMPT_COLOR; or set -g PROMPT_COLOR on
@@ -576,4 +577,27 @@ function fish_prompt
     end
 
     set -g __tmerm_timer 0
+end
+
+# ── AI agent ────────────────────────────────────────────────────
+function ai --description "Talk to the AI agent from your shell"
+    if test (count $argv) -eq 0
+        echo "Usage: ai <query>"
+        echo "  Talk to the AI agent directly from your shell"
+        return 1
+    end
+    set -l cmd (command -v termeric 2>/dev/null; or echo "$HOME/.local/bin/termeric")
+    if not test -x "$cmd"
+        echo "termeric not found in PATH. Run 'termeric install' first." >&2
+        return 1
+    end
+    eval $cmd ai agent $argv
+end
+
+# ── / prefix intercept ─────────────────────────────────────────
+function _termeric_preexec --on-event fish_preexec
+    if string match -r '^/(.+)$' -- $argv[1] &>/dev/null
+        ai (string replace -r '^/(.+)$' '$1' -- $argv[1])
+        return 1
+    end
 end

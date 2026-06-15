@@ -108,6 +108,7 @@ termeric uninstall     # Remove from shell config
 termeric update        # Pull latest and reinstall
 termeric config        # Open config in $EDITOR
 termeric status        # Show current settings
+termeric ai            # AI agent commands (agent/config/doctor)
 termeric font          # Install Meslo Nerd Font
 termeric doctor        # Check system compatibility
 termeric version       # Show version
@@ -146,14 +147,58 @@ Benchmark (100 prompt renders in a medium git repo):
 | oh-my-posh | ~80ms |
 | **termeric** | **~8ms** |
 
-## AI Features (Coming Soon)
+## AI Agent
 
-Termeric is being built with AI-powered features:
+Termeric includes a terminal-based AI agent with ReAct loop (tool-using reasoning) backed by **Groq** (default), **Ollama**, or **OpenAI**.
 
-- **Intent detection** — predict what you're trying to do
-- **Command explanation** — annotate what each command does
-- **Error translation** — rewrite cryptic errors in plain English
-- **Natural language** — type descriptions, get commands
+### Commands
+
+```
+termeric ai agent <query>       # Run the AI agent
+termeric ai config              # Edit AI configuration
+termeric ai doctor              # Check AI dependencies
+```
+
+### Shell Functions
+
+In bash, zsh, and fish, use the `ai()` function directly:
+
+```bash
+ai "what files are in this directory?"   # same as 'termeric ai agent ...'
+```
+
+In zsh and fish, prefix any command with `//` to send it to the AI agent:
+
+```zsh
+// list all Python files
+```
+
+### Configuration
+
+Edit `~/.config/termeric/config` via `termeric ai config`, or set environment variables:
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `AI_BACKEND` | `groq` | Backend: `groq`, `ollama`, or `openai` |
+| `AI_ENDPOINT` | *(auto)* | API endpoint URL |
+| `AI_API_KEY` | — | API key (required for Groq and OpenAI) |
+| `AI_MODEL` | *(auto)* | Model name |
+| `AI_SAFE_MODE` | `on` | Confirm before running commands (`on`/`off`) |
+
+Environment variables override config file values. Use `TERMERIC_AI_*` prefix:
+
+```bash
+export TERMERIC_AI_BACKEND=ollama
+export TERMERIC_AI_API_KEY=gsk-your-key
+```
+
+### Defaults by Backend
+
+| Backend | Endpoint | Model |
+|---------|----------|-------|
+| **Groq** | `https://api.groq.com/openai/v1` | `llama-3.3-70b-versatile` |
+| **Ollama** | `http://localhost:11434/v1` | `llama3.1` |
+| **OpenAI** | `https://api.openai.com/v1` | `gpt-4o-mini` |
 
 ## Documentation
 

@@ -69,6 +69,7 @@ for f in \
     "bin/termeric" \
     "install.sh" \
     "completions/termeric.bash" "completions/termeric.zsh" "completions/termeric.fish" \
+    "ai/termeric_ai" \
     "packaging/Makefile" \
     "packaging/deb/control" \
     "packaging/rpm/termeric.spec" \
@@ -746,6 +747,419 @@ agent_matches=$(grep -cE "$old_names" "$TERMERIC_DIR/AGENTS.md" 2>/dev/null || t
 if [ "$agent_matches" -gt 0 ]; then
     pass "AGENTS.md: $agent_matches old name(s) in roadmap (acceptable)"
 fi
+
+# ================================================================
+header "13. AI module — Phase 4"
+# ================================================================
+
+# 13a. Syntax check for ai/termeric_ai
+check_syntax "$TERMERIC_DIR/ai/termeric_ai" "ai/termeric_ai" "bash -n '$TERMERIC_DIR/ai/termeric_ai'" bash
+
+# 13b. Version consistency
+ai_version=$(grep 'TERMERIC_AI_VERSION=' "$TERMERIC_DIR/ai/termeric_ai" 2>/dev/null | grep -oP '\d+\.\d+\.\d+' || true)
+if [ "$version_file" = "$ai_version" ]; then
+	pass "ai/termeric_ai version matches VERSION: $ai_version"
+else
+	fail "ai/termeric_ai version mismatch: VERSION='$version_file' ai='$ai_version'"
+fi
+
+# 13c. ai() function exists in all 3 shell files
+ai_func_ok=0
+if grep -qE '^ai\(' "$TERMERIC_DIR/termeric_bash" 2>/dev/null; then
+	ai_func_ok=$((ai_func_ok + 1))
+else
+	fail "termeric_bash: missing ai() function"
+fi
+if grep -qE '^ai\(' "$TERMERIC_DIR/termeric_zsh" 2>/dev/null; then
+	ai_func_ok=$((ai_func_ok + 1))
+else
+	fail "termeric_zsh: missing ai() function"
+fi
+if grep -qE '^function ai\b' "$TERMERIC_DIR/termeric_fish" 2>/dev/null; then
+	ai_func_ok=$((ai_func_ok + 1))
+else
+	fail "termeric_fish: missing ai function"
+fi
+[ "$ai_func_ok" -eq 3 ] && pass "all 3 shell files have ai() function"
+
+# 13d. / prefix intercept hooks in zsh and fish
+if grep -q "accept-line" "$TERMERIC_DIR/termeric_zsh" 2>/dev/null; then
+	pass "termeric_zsh: / prefix intercept via accept-line"
+else
+	fail "termeric_zsh: missing / prefix intercept"
+fi
+if grep -q "fish_preexec" "$TERMERIC_DIR/termeric_fish" 2>/dev/null; then
+	pass "termeric_fish: / prefix intercept via fish_preexec"
+else
+	fail "termeric_fish: missing / prefix intercept"
+fi
+
+# 13e. CLI dispatches ai subcommand
+if grep -qE '^ai\)' "$TERMERIC_DIR/bin/termeric" 2>/dev/null; then
+	pass "bin/termeric: dispatches ai subcommand"
+else
+	fail "bin/termeric: missing ai case dispatch"
+fi
+
+# Create AI function library for unit tests
+AI_LIB=$(mktemp)
+# Extract everything before the main dispatch (skip shebang and set -euo)
+sed -n '3,/^# ---- Main/p' "$TERMERIC_DIR/ai/termeric_ai" | head -n -1 > "$AI_LIB"
+
+# 13f. _read_file returns file content
+rft=$(bash -c "
+	source '$AI_LIB'
+	tmpf=\$(mktemp)
+	echo 'hello world' > \$tmpf
+	_read_file \$tmpf
+	rm -f \$tmpf
+" 2>/dev/null) || true
+if echo "$rft" | grep -q "hello world"; then
+	pass "_read_file: returns file content"
+else
+	fail "_read_file: got '$(echo "$rft" | head -c 50)'"
+fi
+
+# 13g. _write_file creates file with content
+wft=$(bash -c "
+	source '$AI_LIB'
+	tmpd=\$(mktemp -d)
+	tmpf=\$tmpd/test.txt
+	_write_file \$tmpf 'test content' >/dev/null
+	cat \$tmpf 2>/dev/null
+	rm -rf \$tmpd
+" 2>/dev/null) || true
+if [ "$wft" = "test content" ]; then
+	pass "_write_file: creates file with content"
+else
+	fail "_write_file: got '$wft'"
+fi
+
+# 13h. _glob finds files by pattern
+glt=$(bash -c "
+	source '$AI_LIB'
+	tmpd=\$(mktemp -d)
+	cd \$tmpd
+	touch foo.txt bar.txt baz.log
+	_glob '*.txt' 2>/dev/null | sort | tr '\n' ' '
+	rm -rf \$tmpd
+" 2>/dev/null) || true
+if echo "$glt" | grep -q "foo.txt" && echo "$glt" | grep -q "bar.txt"; then
+	pass "_glob: finds .txt files"
+else
+	fail "_glob: got '$glt'"
+fi
+
+# 13i. _grep finds pattern in files
+grt=$(bash -c "
+	source '$AI_LIB'
+	tmpd=\$(mktemp -d)
+	cd \$tmpd
+	echo 'hello world' > test.txt
+	echo 'other' > other.txt
+	_grep 'hello' . 2>/dev/null
+	rm -rf \$tmpd
+" 2>/dev/null) || true
+if echo "$grt" | grep -q "hello"; then
+	pass "_grep: finds pattern in files"
+else
+	fail "_grep: got '$(echo "$grt" | head -c 50)'"
+fi
+
+# 13j. _load_config reads from config file
+clt=$(bash -c "
+	TMPD=\$(mktemp -d)
+	export XDG_CONFIG_HOME=\$TMPD
+	mkdir -p \$TMPD/termeric
+	cat > \$TMPD/termeric/config << 'CONF'
+AI_BACKEND=ollama
+AI_SAFE_MODE=off
+CONF
+	source '$AI_LIB'
+	_load_config 2>/dev/null || true
+	echo \"BACKEND=\$AI_BACKEND SAFE=\$AI_SAFE_MODE\"
+	rm -rf \$TMPD
+" 2>/dev/null) || true
+if echo "$clt" | grep -q "BACKEND=ollama.*SAFE=off"; then
+	pass "_load_config: reads AI_BACKEND and AI_SAFE_MODE from config"
+else
+	fail "_load_config: got '$clt'"
+fi
+
+# 13k. _load_config env vars override config file
+evt=$(bash -c "
+	export TERMERIC_AI_BACKEND=openai
+	export TERMERIC_AI_API_KEY=test-key-123
+	source '$AI_LIB'
+	_load_config 2>/dev/null || true
+	echo \"BACKEND=\$AI_BACKEND KEY_LEN=\$(echo \$AI_API_KEY | wc -c)\"
+" 2>/dev/null) || true
+if echo "$evt" | grep -q "BACKEND=openai"; then
+	pass "_load_config: TERMERIC_AI_BACKEND env var overrides default"
+else
+	fail "_load_config: env override got '$evt'"
+fi
+if echo "$evt" | grep -q "KEY_LEN=1[2-9]"; then
+	pass "_load_config: TERMERIC_AI_API_KEY read from env"
+else
+	fail "_load_config: api key not read from env: '$evt'"
+fi
+
+# 13l. _run_command safe mode rejects with 'n'
+sft=$(echo "n" | bash -c "
+	source '$AI_LIB'
+	AI_SAFE_MODE=on
+	_run_command 'echo should-not-run' 2>/dev/null
+" 2>/dev/null) || true
+if echo "$sft" | grep -qi "rejected"; then
+	pass "_run_command: safe mode rejects command when user says n"
+else
+	fail "_run_command: safe mode rejected got '$sft'"
+fi
+
+# 13m. _run_command safe mode accepts with default (enter)
+sft2=$(printf '\n' | bash -c "
+	source '$AI_LIB'
+	AI_SAFE_MODE=on
+	_run_command 'echo hello-accepted' 2>/dev/null
+" 2>/dev/null) || true
+if echo "$sft2" | grep -q "hello-accepted"; then
+	pass "_run_command: safe mode runs command on enter"
+else
+	fail "_run_command: safe mode accept got '$sft2'"
+fi
+
+# 13n. _run_command safe mode off runs without prompt
+sft3=$(bash -c "
+	source '$AI_LIB'
+	AI_SAFE_MODE=off
+	_run_command 'echo hello-no-prompt' 2>/dev/null
+" 2>/dev/null) || true
+if echo "$sft3" | grep -q "hello-no-prompt"; then
+	pass "_run_command: safe mode off runs without prompt"
+else
+	fail "_run_command: safe mode off got '$sft3'"
+fi
+
+# 13o. _cmd_config creates config file with AI vars
+cft=$(bash -c "
+	TMPD=\$(mktemp -d)
+	export XDG_CONFIG_HOME=\$TMPD
+	export EDITOR=true
+	source '$AI_LIB'
+	_cmd_config 2>/dev/null || true
+	if [ -f \$TMPD/termeric/config ]; then
+		echo 'CREATED'
+		grep -q 'AI_BACKEND' \$TMPD/termeric/config && echo 'HAS_BACKEND' || true
+		grep -q 'AI_SAFE_MODE' \$TMPD/termeric/config && echo 'HAS_SAFE' || true
+	fi
+	rm -rf \$TMPD
+" 2>/dev/null) || true
+if echo "$cft" | grep -q "CREATED"; then
+	pass "_cmd_config: creates config file"
+else
+	fail "_cmd_config: config not created: '$cft'"
+fi
+if echo "$cft" | grep -q "HAS_BACKEND"; then
+	pass "_cmd_config: config template contains AI_BACKEND"
+else
+	fail "_cmd_config: template missing AI_BACKEND"
+fi
+if echo "$cft" | grep -q "HAS_SAFE"; then
+	pass "_cmd_config: config template contains AI_SAFE_MODE"
+else
+	fail "_cmd_config: template missing AI_SAFE_MODE"
+fi
+
+# 13p. AI_* config vars present in ai/termeric_ai source
+for var in "AI_BACKEND" "AI_API_KEY" "AI_SAFE_MODE" "AI_ENDPOINT" "AI_MODEL"; do
+	if grep -q "$var" "$TERMERIC_DIR/ai/termeric_ai" 2>/dev/null; then
+		:
+	else
+		fail "ai/termeric_ai: missing reference to $var"
+	fi
+done
+pass "ai/termeric_ai: references all 5 AI config vars"
+
+# ================================================================
+header "14. AI module — backend & error coverage"
+# ================================================================
+
+# 14a. Groq with key sets default endpoint and model
+gkt=$(bash -c "
+  source '$AI_LIB'
+  export TERMERIC_AI_BACKEND=groq
+  export TERMERIC_AI_API_KEY=gsk-test-key
+  _load_config 2>/dev/null || true
+  echo \"EP=\$AI_ENDPOINT MODEL=\$AI_MODEL\"
+")
+if echo "$gkt" | grep -q "EP=https://api.groq.com/openai/v1" && \
+   echo "$gkt" | grep -q "MODEL=llama-3.3-70b-versatile"; then
+  pass "_load_config: Groq with key sets defaults"
+else
+  fail "_load_config: Groq with key got '$gkt'"
+fi
+
+# 14b. Groq without key returns 1
+gkn=$(bash -c "
+  source '$AI_LIB'
+  export TERMERIC_AI_BACKEND=groq
+  _load_config 2>/dev/null
+" 2>/dev/null) || gkn_rc=$?
+if [ "${gkn_rc:-0}" -eq 1 ]; then
+  pass "_load_config: Groq without key returns 1"
+else
+  fail "_load_config: Groq without key returned ${gkn_rc:-0}"
+fi
+
+# 14c. OpenAI with key sets default endpoint and model
+okt=$(bash -c "
+  source '$AI_LIB'
+  export TERMERIC_AI_BACKEND=openai
+  export TERMERIC_AI_API_KEY=sk-test-key
+  _load_config 2>/dev/null || true
+  echo \"EP=\$AI_ENDPOINT MODEL=\$AI_MODEL\"
+")
+if echo "$okt" | grep -q "EP=https://api.openai.com/v1" && \
+   echo "$okt" | grep -q "MODEL=gpt-4o-mini"; then
+  pass "_load_config: OpenAI with key sets defaults"
+else
+  fail "_load_config: OpenAI with key got '$okt'"
+fi
+
+# 14d. OpenAI without key returns 1
+okn=$(bash -c "
+  source '$AI_LIB'
+  export TERMERIC_AI_BACKEND=openai
+  _load_config 2>/dev/null
+" 2>/dev/null) || okn_rc=$?
+if [ "${okn_rc:-0}" -eq 1 ]; then
+  pass "_load_config: OpenAI without key returns 1"
+else
+  fail "_load_config: OpenAI without key returned ${okn_rc:-0}"
+fi
+
+# 14e. Ollama sets default endpoint and model (no key needed)
+olt=$(bash -c "
+  source '$AI_LIB'
+  export TERMERIC_AI_BACKEND=ollama
+  _load_config 2>/dev/null || true
+  echo \"EP=\$AI_ENDPOINT MODEL=\$AI_MODEL\"
+")
+if echo "$olt" | grep -q "EP=http://localhost:11434/v1" && \
+   echo "$olt" | grep -q "MODEL=llama3.1"; then
+  pass "_load_config: Ollama sets defaults"
+else
+  fail "_load_config: Ollama got '$olt'"
+fi
+
+# 14f. Unknown backend returns 1
+ukt=$(bash -c "
+  source '$AI_LIB'
+  export TERMERIC_AI_BACKEND=unknown
+  _load_config 2>/dev/null
+" 2>/dev/null) || ukt_rc=$?
+if [ "${ukt_rc:-0}" -eq 1 ]; then
+  pass "_load_config: Unknown backend returns 1"
+else
+  fail "_load_config: Unknown backend returned ${ukt_rc:-0}"
+fi
+
+# 14g. _llm_chat unreachable endpoint returns error
+llme=$(bash -c "
+  source '$AI_LIB'
+  AI_ENDPOINT='http://127.0.0.1:1/v1'
+  AI_MODEL='test-model'
+  AI_API_KEY='test-key'
+  _llm_chat '[{\"role\":\"user\",\"content\":\"hi\"}]' >/dev/null
+" 2>&1) || llme_rc=$?
+if [ "${llme_rc:-0}" -eq 1 ] && echo "$llme" | grep -q "API request failed"; then
+  pass "_llm_chat: unreachable endpoint returns error"
+else
+  fail "_llm_chat: unreachable got rc=${llme_rc:-0} msg='$(echo "$llme" | head -c 50)'"
+fi
+
+# 14h. _exec_tool missing command arg
+et_mc=$(bash -c "source '$AI_LIB'; _exec_tool run_command '{}'")
+if echo "$et_mc" | grep -q "Missing command argument"; then
+  pass "_exec_tool: missing command arg"
+else
+  fail "_exec_tool: missing command got '$et_mc'"
+fi
+
+# 14i. _exec_tool missing path arg
+et_mp=$(bash -c "source '$AI_LIB'; _exec_tool read_file '{}'")
+if echo "$et_mp" | grep -q "Missing path argument"; then
+  pass "_exec_tool: missing path arg"
+else
+  fail "_exec_tool: missing path got '$et_mp'"
+fi
+
+# 14j. _exec_tool missing pattern arg
+et_mpt=$(bash -c "source '$AI_LIB'; _exec_tool glob '{}'")
+if echo "$et_mpt" | grep -q "Missing pattern argument"; then
+  pass "_exec_tool: missing pattern arg"
+else
+  fail "_exec_tool: missing pattern got '$et_mpt'"
+fi
+
+# 14k. _exec_tool unknown tool
+et_ut=$(bash -c "source '$AI_LIB'; _exec_tool nonexistent '{}'")
+if echo "$et_ut" | grep -q "Unknown tool: nonexistent"; then
+  pass "_exec_tool: unknown tool"
+else
+  fail "_exec_tool: unknown tool got '$et_ut'"
+fi
+
+# 14l. ReAct loop: LLM failure exits with 1
+rl_f=$(bash -c "
+  source '$AI_LIB'
+  AI_SAFE_MODE=off
+  _llm_chat() { return 1; }
+  _react_loop 'test query'
+" 2>&1) || rl_f_rc=$?
+if [ "${rl_f_rc:-0}" -eq 1 ]; then
+  pass "_react_loop: LLM failure exits with 1"
+else
+  fail "_react_loop: LLM failure got exit ${rl_f_rc:-0}"
+fi
+
+# 14m. ReAct loop: max turns warning
+rl_m=$(bash -c "
+  source '$AI_LIB'
+  AI_SAFE_MODE=off
+  _llm_chat() { echo '{\"tool\": \"run_command\", \"args\": {\"command\": \"echo hi\"}}'; }
+  _react_loop 'test query'
+" 2>&1) || rl_m_rc=$?
+if [ "${rl_m_rc:-0}" -eq 1 ] && echo "$rl_m" | grep -q "max 8 turns"; then
+  pass "_react_loop: max turns warning"
+else
+  fail "_react_loop: max turns got rc=${rl_m_rc:-0} msg='$(echo "$rl_m" | head -c 50)'"
+fi
+
+# 14n. _read_file on non-existent file
+rf_nf=$(bash -c "source '$AI_LIB'; _read_file '/nonexistent/path/file.txt'")
+if echo "$rf_nf" | grep -q "File not found"; then
+  pass "_read_file: non-existent file returns error"
+else
+  fail "_read_file: non-existent got '$rf_nf'"
+fi
+
+# 14o. _glob with no matches
+gl_nm=$(bash -c "
+  source '$AI_LIB'
+  tmpd=\$(mktemp -d)
+  cd \$tmpd
+  _glob '*.nonexistent'
+  rm -rf \$tmpd
+" 2>/dev/null)
+if [ -z "$gl_nm" ]; then
+  pass "_glob: no matches returns empty"
+else
+  fail "_glob: no matches got '$gl_nm'"
+fi
+
+rm -f "$AI_LIB"
 
 # ================================================================
 # Results

@@ -107,5 +107,13 @@ All features controlled via `on`/`off` values. Backward compat: `1`/`0` also acc
 - Updated bin/termeric (help, config template, status, doctor)
 - Updated install.sh help, Homebrew caveats, README.md, AGENTS.md
 
-### Phase 4 — Future
-- AI features (intent detection, command explanation, error translation, natural language)
+### Phase 4 — Done
+- AI agent with Groq/Ollama/OpenAI support (`ai/termeric_ai`)
+  - ReAct loop with 7 tools (run_command, read_file, write_file, glob, grep, web_fetch, web_search)
+  - Config via `~/.config/termeric/config` and env vars
+  - Safe mode (confirm before running commands)
+- `termeric ai` CLI subcommand (agent/config/doctor)
+- `ai()` shell function in bash/zsh/fish
+- `/` prefix intercept in zsh (accept-line widget) and fish (fish_preexec)
+- Test coverage: 20 AI-specific tests (syntax, config, tools, safe mode, ReAct loop, edge cases)
+- Distribution packaging: deb, rpm, AUR, Homebrew all ship `ai/termeric_ai`

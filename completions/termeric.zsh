@@ -8,6 +8,7 @@ _termeric() {
         'update:Pull latest version and reinstall'
         'config:Open config in $EDITOR'
         'status:Show current settings and diagnostics'
+        'ai:AI agent commands (agent/config/doctor)'
         'font:Install Meslo Nerd Font'
         'doctor:Check system compatibility'
         'version:Show version'

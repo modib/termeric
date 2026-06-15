@@ -12,6 +12,7 @@
 #   PROMPT_VENV=off        Show Python virtualenv/conda name (default: off)
 #   PROMPT_NODE=off        Show Node.js version (default: off)
 #   PROMPT_K8S=off         Show Kubernetes context (default: off)
+#   ai()                   AI agent with Groq/Ollama/OpenAI (run 'ai help' in shell)
 
 # ── Term detection (once) ──────────────────────────────────────
 case "$TERM" in
@@ -498,3 +499,29 @@ __termeric_prompt() {
     return "$rc"
 }
 precmd_functions+=(__termeric_prompt)
+
+# ── AI agent ─────────────────────────────────────────────────────
+ai() {
+  if [ $# -eq 0 ]; then
+    printf "Usage: ai <query>\n"
+    printf "  Talk to the AI agent directly from your shell\n"
+    return 1
+  fi
+  local cmd
+  cmd=$(command -v termeric 2>/dev/null) || cmd="$HOME/.local/bin/termeric"
+  if [ ! -x "$cmd" ]; then
+    echo "termeric not found in PATH. Run 'termeric install' first." >&2
+    return 1
+  fi
+  "$cmd" ai agent "$@"
+}
+
+# ── / prefix intercept ─────────────────────────────────────────
+_termeric_accept_line() {
+  local buf="$BUFFER"
+  if [[ "$buf" =~ ^/(.+)$ ]]; then
+    BUFFER="ai ${match[1]}"
+  fi
+  zle .accept-line
+}
+zle -N accept-line _termeric_accept_line

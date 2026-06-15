@@ -10,10 +10,11 @@ help: ## Show this help
 		awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-15s\033[0m %s\n", $$1, $$2}'
 
 install: ## Install termeric
-	@mkdir -p $(BINDIR) $(SHAREDIR)/completions
+	@mkdir -p $(BINDIR) $(SHAREDIR)/completions $(SHAREDIR)/ai
 	@cp bin/termeric $(BINDIR)/termeric
 	@chmod +x $(BINDIR)/termeric
 	@cp termeric_bash termeric_zsh termeric_fish $(SHAREDIR)/
+	@cp ai/termeric_ai $(SHAREDIR)/ai/
 	@cp completions/termeric.bash $(SHAREDIR)/completions/
 	@cp completions/termeric.zsh $(SHAREDIR)/completions/
 	@cp completions/termeric.fish $(SHAREDIR)/completions/

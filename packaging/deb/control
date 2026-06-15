@@ -1,9 +1,9 @@
 Package: termeric
-Version: 1.4.0
+Version: 1.6.0
 Section: utils
 Priority: optional
 Architecture: all
-Depends: bash, zsh, git
+Depends: bash, zsh, git, jq, curl
 Recommends: fish
 Maintainer: modib <noreply@github.com>
 Homepage: https://modib.github.io/termeric/

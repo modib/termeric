@@ -4,7 +4,7 @@ set -euo pipefail
 DOTFILES_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 # ── Version ─────────────────────────────────────────────────────
-TERMERIC_VERSION="${TERMERIC_VERSION:-1.5.0}"
+TERMERIC_VERSION="${TERMERIC_VERSION:-1.6.0}"
 
 # ── Colors ──────────────────────────────────────────────────────
 if [ -t 1 ]; then
@@ -256,6 +256,15 @@ do_install() {
 			_info "$fish_config_dir/config.fish already sources termeric_fish"
 		fi
 	fi
+
+	# Install AI module
+	mkdir -p "$HOME/.local/share/termeric/ai"
+	if [ "$INSTALL_LINK" -eq 1 ]; then
+		ln -sf "$DOTFILES_DIR/ai/termeric_ai" "$HOME/.local/share/termeric/ai/termeric_ai"
+	else
+		cp "$DOTFILES_DIR/ai/termeric_ai" "$HOME/.local/share/termeric/ai/termeric_ai"
+	fi
+	_ok "Installed AI module to ~/.local/share/termeric/ai/"
 
 	# Install CLI
 	mkdir -p "$HOME/.local/bin"
