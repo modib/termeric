@@ -74,7 +74,7 @@ jobs:
 
             Golden prompts for your terminal — now with AI agent support.
 
-            **New in 1.7.0:**
+            **New in 1.7.1:**
             - Non-streaming LLM calls (faster, no more empty second-turn responses)
             - 3-turn max ReAct loop with 1s rate-limit delay (Groq free tier safe)
             - Developer command blocklist: npm, npx, yarn, pnpm, bun, cargo, pip install -r, gem/bundle/composer install, dotnet/go build/run/new/mod, mvn, gradle, scaffolding

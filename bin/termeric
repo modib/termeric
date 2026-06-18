@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-TERMERIC_VERSION="1.7.0"
+TERMERIC_VERSION="1.7.1"
 TERMERIC_DIR="$(cd "$(dirname "$(readlink -f "$0")")/.." && pwd)"
 
 # Detect share directory (Homebrew pkgshare puts files under share/termeric/)

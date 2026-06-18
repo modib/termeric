@@ -4,7 +4,7 @@ set -euo pipefail
 DOTFILES_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 # ── Version ─────────────────────────────────────────────────────
-TERMERIC_VERSION="${TERMERIC_VERSION:-1.7.0}"
+TERMERIC_VERSION="${TERMERIC_VERSION:-1.7.1}"
 
 # ── Colors ──────────────────────────────────────────────────────
 if [ -t 1 ]; then

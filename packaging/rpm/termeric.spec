@@ -1,5 +1,5 @@
 Name:           termeric
-Version:        1.7.0
+Version:        1.7.1
 Release:        1%{?dist}
 Summary:        Golden prompts for your terminal
 License:        MIT

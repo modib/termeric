@@ -6,7 +6,7 @@ set -euo pipefail
 #        ai/termeric_ai config
 #        ai/termeric_ai doctor
 
-TERMERIC_AI_VERSION="1.7.0"
+TERMERIC_AI_VERSION="1.7.1"
 
 # ---- Helpers ----------------------------------------------------
 _info() { printf "\033[36m▸\033[0m %s\n" "$*"; }
